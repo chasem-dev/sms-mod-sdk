@@ -2,6 +2,14 @@
 
 A release's tag is the API version (`v1.1.0` is API 1.1). Within a major version the API only grows; see [Compatibility](docs/MODDING.md#compatibility).
 
+## 1.5.0
+
+Nozzles and Mario's outfit, for mods that decide what Mario has (a randomizer's unlocks, a challenge's rules).
+
+- `SMS_EV_PLAYER_NOZZLE` (`SmsEvPlayerNozzle`: `nozzle`, `animate`, `reason`): FLUDD is about to switch nozzle (`SMS_NOZZLE_SWITCH`), swap with its second nozzle (`SWAP`), or a nozzle's box is about to be set up (`BOX`). `nozzle` may be changed; cancel and the nozzle stays (a box is left out).
+- `player->set_nozzle(nozzle, animate)`, `player->set_fludd(has)`: FLUDD's nozzle, and whether Mario has FLUDD, as the game would set them.
+- `player->set_outfit(shirt, sunglasses, helmet)`: the aloha shirt, the sunglasses and the diving helmet.
+
 ## 1.4.0
 
 Server mods change and add to the stage, and run the players' games further (docs/MODDING.md, "Server mods"); and for any mod, the game's worlds, episodes and cutscenes, and why a stage is left ("world").

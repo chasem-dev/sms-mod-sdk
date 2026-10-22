@@ -263,6 +263,7 @@ Subscribe with `core->subscribe(mod, type, fn, user, priority)`; `fn(mod, ev, us
 | `SMS_EV_SAVE_STATE_REQUEST` | a save state was asked for | `SmsEvSaveState` reason | cancel (set `reason` for the message shown) |
 | `SMS_EV_HIDE_PLAYER_MODEL` | Mario's models are about to be drawn | `SmsEvObject` Mario | consume (leave them out; draw him your own way) |
 | `SMS_EV_PLAYER_STATUS` | Mario's [status](#mario-statuses) (his action) is about to change | `SmsEvPlayerStatus` from, to, arg, forced | change `to`/`arg`; cancel (he stays as he is) |
+| `SMS_EV_PLAYER_NOZZLE` | FLUDD is about to switch nozzle, swap with its second one, or a nozzle's box is about to be set up (1.5) | `SmsEvPlayerNozzle` nozzle, animate, [reason](#nozzles) | change `nozzle`; cancel (it stays; a box is left out) |
 | `SMS_EV_PLAYER_DAMAGE` | Mario is about to lose health, or air under water | `SmsEvDamage` amount, underwater | change `amount`; cancel (he loses nothing) |
 | `SMS_EV_SHINE_COLLECTED` | a Shine's flag was set for the first time on this file | `SmsEvShine` shine number, total | |
 | `SMS_EV_CAMERA` | the game camera placed itself this tick and is about to make its matrices | `SmsEvCamera` position, target, fovy, aspect | change position, target, fovy |
@@ -345,6 +346,8 @@ Objects (`SmsObject`) come from events and `find_object`; they are good until th
 `get(&p)` fills an `SmsPlayer`: `valid` (0 outside stages), position, velocity, forward speed, yaw in degrees and the raw face angles, health and maximum, FLUDD's water and maximum, whether he has FLUDD and its second [nozzle](#nozzles), his [status](#mario-statuses) and how long he has had it, `on_ground`, `in_water`, `on_yoshi`, the ground below him, and the game's object for him.
 
 `set_position`, `set_velocity`, `set_forward_speed`, `set_health` (clamped to 0..max), `set_water` (clamped to 0..max) change him; `set_status(status, arg)` asks for a status as the game does (it may refuse). Each returns 0 when there is no Mario.
+
+API 1.5: `set_nozzle(nozzle, animate)` switches FLUDD to a nozzle as the game does (a handler of `SMS_EV_PLAYER_NOZZLE` may refuse), `set_fludd(has)` gives or takes away FLUDD, and `set_outfit(shirt, sunglasses, helmet)` puts on or takes off the aloha shirt, the sunglasses and the diving helmet. Check `SMS_API_HAS(api->player, set_outfit)` before calling.
 
 ### camera
 
@@ -978,6 +981,8 @@ Other flags (events seen, nozzles unlocked, the plaza's state) are in the decomp
 ### Nozzles
 
 `SmsPlayer.nozzle`: 0 spray, 1 rocket, 2 underwater, 3 Yoshi, 4 hover, 5 turbo, 7 diving helmet.
+
+`SmsEvPlayerNozzle.reason` (1.5): `SMS_NOZZLE_SWITCH` (0) FLUDD switches to `nozzle` (a nozzle's box, the stage's start, `player->set_nozzle`), `SMS_NOZZLE_SWAP` (1) the swap with the second nozzle, `nozzle` being the one it swaps to, `SMS_NOZZLE_BOX` (2) a nozzle's box in the stage (`nozzle` is the box's; cancel leaves it out).
 
 ### Mario statuses
 

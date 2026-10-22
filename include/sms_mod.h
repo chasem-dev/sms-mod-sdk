@@ -35,7 +35,7 @@
 #include <stdint.h>
 
 #define SMS_MOD_API_MAJOR 1
-#define SMS_MOD_API_MINOR 4
+#define SMS_MOD_API_MINOR 5
 #define SMS_MOD_API_VERSION ((uint32_t)SMS_MOD_API_MAJOR << 16 | SMS_MOD_API_MINOR)
 
 #if defined(_WIN32)
@@ -187,6 +187,12 @@ typedef enum SmsEventType {
 	   episode's name, "Go!") and the player has the controls: the first
 	   tick of play. SmsEvStage: the stage, and how it was reached (reason). */
 	SMS_EV_STAGE_START = 30,
+	/* API 1.5. Mario's FLUDD is about to switch nozzle, swap with its second
+	   nozzle, or a nozzle's box is about to be set up (SMS_NOZZLE_*).
+	   `nozzle` may be changed. Cancellable: cancel and the nozzle stays as
+	   it is (for a box: it is left out). Only the player's Mario.
+	   SmsEvPlayerNozzle. */
+	SMS_EV_PLAYER_NOZZLE = 31,
 
 	/* core->event_id hands out ids from here for mods' own events. */
 	SMS_EV_CUSTOM_BASE = 0x10000
@@ -368,6 +374,19 @@ typedef struct SmsEvDamage {
 	int amount;     /* changeable */
 	int underwater; /* air is lost, not health */
 } SmsEvDamage;
+
+/* SmsEvPlayerNozzle.reason (API 1.5) */
+typedef enum SmsNozzleReason {
+	SMS_NOZZLE_SWITCH = 0, /* FLUDD switches to `nozzle` (the box, the game, set_nozzle) */
+	SMS_NOZZLE_SWAP = 1,   /* the nozzle swap (the buttons): `nozzle` is the one swapped to */
+	SMS_NOZZLE_BOX = 2     /* a nozzle's box in the stage: `nozzle` is the box's nozzle */
+} SmsNozzleReason;
+
+typedef struct SmsEvPlayerNozzle {
+	int nozzle;  /* SmsPlayer.nozzle's numbers (docs/MODDING.md, Nozzles); changeable */
+	int animate; /* the switch is shown (not for a box) */
+	int reason;  /* SmsNozzleReason */
+} SmsEvPlayerNozzle;
 
 typedef struct SmsEvShine {
 	int shine;      /* the Shine's number (0..119) */
@@ -563,6 +582,15 @@ typedef struct SmsPlayerApi {
 	int (*set_water)(int water);
 	/* Ask for a status as the game does (it may refuse). */
 	int (*set_status)(uint32_t status, uint32_t arg);
+	/* API 1.5. FLUDD switches to a nozzle (SmsPlayer.nozzle's numbers) as the
+	   game does, `animate` showing the switch: 1, or 0 when there is no
+	   Mario, no FLUDD, or an SMS_EV_PLAYER_NOZZLE handler refused. */
+	int (*set_nozzle)(int nozzle, int animate);
+	/* API 1.5. Mario has FLUDD (1) or has not (0); 0 when there is no Mario. */
+	int (*set_fludd)(int has);
+	/* API 1.5. What he wears: the aloha shirt, the sunglasses, the diving
+	   helmet (1 on, 0 off); 0 when there is no Mario. */
+	int (*set_outfit)(int shirt, int sunglasses, int helmet);
 } SmsPlayerApi;
 
 typedef struct SmsCamera {
