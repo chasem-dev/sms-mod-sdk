@@ -8,6 +8,18 @@ Pre-releases (`v1.5.0-beta.1`, `-beta.2`, ...) lead to a release and are listed 
 
 FLUDD's nozzles and Mario's outfit, for mods that decide what Mario has (a randomizer's unlocks, a challenge's rules); and events for every kind of mod, in the manner of other games' modding APIs: what Mario does, what happens to the stage's actors, and what the game does around them.
 
+### 1.5.0-beta.6
+
+- `api->files` (`SmsFilesApi`; `SMS_API_HAS(api, files)`): a mod's own files beside the memory card, in `<card folder>-mods/<mod id>/`. Scope `SMS_FILES_MOD` is written at once; scopes 0..2 (and `SMS_FILES_CURRENT`) are save files A to C of the running game, kept as the card keeps them: written when the game saves the file being played, none for a new game, copied and erased with the file at file select.
+- `SMS_EV_SAVE_FILE` (`SmsEvSaveFile`: `what`, `file`, `from`): a save file loaded, started anew, saved, copied or erased.
+- `SMS_EV_NOZZLE_FIRE` (`SmsEvNozzleFire`: `nozzle`, `how`): FLUDD's trigger is about to fire, a burst (A while R is held) or the pressure (rocket, hover, turbo). Cancellable.
+- `SmsEvPlayerSpawn.kind` is changeable: wait, roll or return; a coaster start changed so is a stage start like any other's, without the coaster. The coaster start is now reported as `SMS_START_COASTER` (it came as wait or roll).
+- `SMS_EV_SHINE_SETUP` (`SmsEvShineSetup`: `object`, `shine`, `collected`, `model`): a Shine may take a model file of the mod's. `game->object_set_color(obj, which, colour)` (`SMS_COLOR_MATERIAL`, `SMS_COLOR_TEV0`..`2`) colours an object's model.
+- `SMS_EV_YOSHI_EGG` (`SmsEvYoshiEgg`: `kind`, `present`, `object`): whether Yoshi's egg is there (a stage's egg, the plaza's egg event, that event's egg); changeable.
+- `SMS_EV_EPISODE_SHINE` (`SmsEvEpisodeShine`: `area`, `episode`, `shine`): the Shine an episode stands for in the episode select and the pause menu (its name, whether it shows collected, how many episodes are offered); changeable.
+- In Lua: the events `save_file`, `nozzle_fire`, `shine_setup` (`model` relative to the script mod's folder), `yoshi_egg`, `episode_shine`, `player_spawn`'s `kind` writable, `sms.files_read`/`files_write`/`files_remove`/`files_dir` and `sms.set_object_color`.
+- The lua mod is version 1.5.0-beta.6.
+
 ### 1.5.0-beta.5
 
 - Water fights for server mods (docs/MODDING.md, "Water fights"): `SMS_RULE_WATER_HITS` has FLUDD's water hit the other players. The shooter's game stops each drop at the player it hits and reports the hits to the host, which hears them as `SMS_EV_NET_PLAYER_SPLASHED` (`SmsEvNetSplash`: `slot`, `by`, `drops`, `position`).

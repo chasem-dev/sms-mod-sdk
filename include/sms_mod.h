@@ -42,7 +42,7 @@
 #define SMS_MOD_API_MAJOR 1
 #define SMS_MOD_API_MINOR 5
 /* 0 in a release; N in the pre-release vMAJOR.MINOR.0-beta.N (API 1.5) */
-#define SMS_MOD_API_PRERELEASE 5
+#define SMS_MOD_API_PRERELEASE 6
 #define SMS_MOD_API_VERSION ((uint32_t)SMS_MOD_API_MAJOR << 16 | SMS_MOD_API_MINOR)
 
 #if defined(_WIN32)
@@ -315,6 +315,29 @@ typedef enum SmsEventType {
 	   report, about ten reports a second while they keep hitting.
 	   SmsEvNetSplash. */
 	SMS_EV_NET_PLAYER_SPLASHED = 61,
+	/* (API 1.5 beta 6) A save file was loaded or started anew at file
+	   select, saved (the pause menu's save, the save prompt, auto save),
+	   copied or erased. Its files (files->*, scope 0..2) are as the card has
+	   them now. SmsEvSaveFile. */
+	SMS_EV_SAVE_FILE = 62,
+	/* (API 1.5 beta 6) FLUDD's trigger is about to fire: a burst (A while R
+	   is held, with the spray) or the pressure built up (the rocket, hover
+	   and turbo nozzles). Only the player's Mario. Cancellable: cancel and it
+	   does not fire (R is pressed again to try again). SmsEvNozzleFire. */
+	SMS_EV_NOZZLE_FIRE = 63,
+	/* (API 1.5 beta 6) A Shine is made, as its stage loads: its model may be
+	   one of the mod's (`model`). SmsEvShineSetup. */
+	SMS_EV_SHINE_SETUP = 64,
+	/* (API 1.5 beta 6) Whether Yoshi's egg is there: an egg the stage
+	   places, or the plaza's egg event. Changeable (`present`).
+	   SmsEvYoshiEgg. */
+	SMS_EV_YOSHI_EGG = 65,
+	/* (API 1.5 beta 6) Which Shine an episode stands for, as the episode
+	   select and the pause menu show it: its name, and whether it is shown
+	   collected (the episode select's marks, and so how many episodes it
+	   offers). Changeable (`shine`). Many a time: the select asks as its
+	   cursor moves. SmsEvEpisodeShine. */
+	SMS_EV_EPISODE_SHINE = 66,
 
 	/* core->event_id hands out ids from here for mods' own events. */
 	SMS_EV_CUSTOM_BASE = 0x10000
@@ -594,7 +617,11 @@ typedef struct SmsEvPlayerSpawn {
 	float yaw;         /* degrees, as SmsPlayer's; changeable */
 	int has_position;  /* 0: the stage puts him where its scene file does (position is
 	                      that); set 1 with a position to put him somewhere */
-	int kind;          /* SMS_START_* */
+	/* SMS_START_*. (API 1.5 beta 6) Changeable: WAIT, ROLL or RETURN starts
+	   him that way; a COASTER start changed to one of them is a stage start
+	   like any other's, without the coaster (none is changed to COASTER).
+	   Before beta 6 a coaster start came as WAIT or ROLL. */
+	int kind;
 } SmsEvPlayerSpawn;
 
 /* SmsEvPlayerMount.mount (API 1.5 beta 2) */
@@ -660,6 +687,59 @@ typedef struct SmsEvShineActor {
 	int had;            /* the file has it already */
 	SmsVec3 position;
 } SmsEvShineActor;
+
+/* SmsEvSaveFile.what (API 1.5 beta 6) */
+#define SMS_SAVE_FILE_LOADED 0 /* chosen at file select, read from the card */
+#define SMS_SAVE_FILE_NEW    1 /* chosen at file select, empty: a new game */
+#define SMS_SAVE_FILE_SAVED  2
+#define SMS_SAVE_FILE_COPIED 3 /* `from` copied over `file` */
+#define SMS_SAVE_FILE_ERASED 4
+
+typedef struct SmsEvSaveFile {
+	int what;  /* SMS_SAVE_FILE_* */
+	int file;  /* 0..2 (A, B, C) */
+	int from;  /* SMS_SAVE_FILE_COPIED: the file copied; otherwise -1 */
+} SmsEvSaveFile;
+
+/* SmsEvNozzleFire.how (API 1.5 beta 6) */
+#define SMS_FIRE_BURST    0 /* A while R is held */
+#define SMS_FIRE_PRESSURE 1 /* R held until the pressure is full */
+
+typedef struct SmsEvNozzleFire {
+	int nozzle; /* FLUDD's nozzle out: 0 spray, 1 rocket, 2 underwater, 4 hover, 5 turbo */
+	int how;    /* SMS_FIRE_* */
+} SmsEvNozzleFire;
+
+typedef struct SmsEvShineSetup {
+	SmsObject object;
+	int shine;     /* its number (0..119; Eclipse's own beyond), -1 none */
+	int collected; /* the file has it: the game gives it its see-through model */
+	/* The model it takes: NULL, the game's. Set it to a model file (.bmd)
+	   of the mod's: a path relative to the mod's folder (core->mod_dir), or
+	   a full one; a model that cannot be loaded leaves the game's. The
+	   Shine's animations play on it, so it keeps the Shine model's joints
+	   and materials (a recoloured Shine, say). Several Shines may name the
+	   same file: it is loaded once a stage. game->object_set_color colours
+	   it. */
+	const char* model;
+} SmsEvShineSetup;
+
+/* SmsEvYoshiEgg.kind (API 1.5 beta 6) */
+#define SMS_EGG_STAGE       0 /* an egg the stage places: there when the file has Yoshi's Shine (0x21; in the plaza, once Yoshi has hatched there: flag 0x1038F) */
+#define SMS_EGG_PLAZA_EVENT 1 /* the plaza's egg event is set up (its episode 8): when Yoshi has not hatched yet and the file has Yoshi's Shine */
+#define SMS_EGG_EVENT_EGG   2 /* the egg of the plaza's egg event: there when the event was set up (flag 0x60003 is 1) */
+
+typedef struct SmsEvYoshiEgg {
+	int kind;         /* SMS_EGG_* */
+	int present;      /* changeable: 1 there (set up), 0 not */
+	SmsObject object; /* the egg (SMS_EGG_STAGE, SMS_EGG_EVENT_EGG), else NULL */
+} SmsEvYoshiEgg;
+
+typedef struct SmsEvEpisodeShine {
+	int area;    /* the world's area (game->state's numbers) */
+	int episode; /* 0..7 */
+	int shine;   /* the Shine (0..119); changeable */
+} SmsEvEpisodeShine;
 
 typedef struct SmsEvFlag {
 	uint32_t id;       /* the flag (docs/MODDING.md, Flags) */
@@ -916,7 +996,21 @@ typedef struct SmsGameApi {
 	   mod draws with draw->* are not affected. */
 	void (*set_hud_hidden)(SmsMod* mod, uint32_t mask);
 	uint32_t (*hud_hidden)(void);
+	/* API 1.5 beta 6: one of the colours of an object's model, in every
+	   material of it (SMS_COLOR_*): its material colour (with alpha), or a
+	   TEV colour register. What it changes is what the model's materials
+	   make of that colour; a model's own colour animation sets it again as
+	   it plays (set it every tick to keep it). The colours are the model's:
+	   every object of the same model shares them (all the Shines given the
+	   same model file, say). 0 when the object has no model. */
+	int (*object_set_color)(SmsObject obj, int which, SmsColor color);
 } SmsGameApi;
+
+/* game->object_set_color's `which` (API 1.5 beta 6) */
+#define SMS_COLOR_MATERIAL 0 /* the material colour (channel 0), with alpha */
+#define SMS_COLOR_TEV0     1 /* TEV colour registers 0..2 */
+#define SMS_COLOR_TEV1     2
+#define SMS_COLOR_TEV2     3
 
 /* The game's cube sets (api->game->in_cube). */
 typedef enum SmsCubeSet {
@@ -1494,6 +1588,38 @@ typedef struct SmsWorldApi {
 	int (*cutscene_playing)(void);
 } SmsWorldApi;
 
+/* Files (API 1.5 beta 6, SMS_API_HAS(api, files)): the mod's own, beside
+   the memory card, in <card folder>-mods/<mod id>/ (card-a-mods/<id>/ by
+   default), so they go with the player's card wherever it is kept.
+
+   scope SMS_FILES_MOD: the mod's own files, written at once.
+   scope 0..2: save file A, B or C of the game being played (Super Mario
+   Sunshine's and Super Mario Eclipse's are kept apart), kept as the card
+   keeps the file: what is written to the file being played is written when
+   the game saves it (so a game quit without saving keeps the files as they
+   were), a new game starts with none, and copying or erasing a file at file
+   select copies or erases them too. SMS_FILES_CURRENT: the file being played
+   (0 when there is none). Writes to another file than the one played are
+   written at once.
+
+   Names: letters, digits, '.', '_' and '-', 1..64 characters, not starting
+   with '.'; a file at most 1 MiB. */
+#define SMS_FILES_MOD     (-1)
+#define SMS_FILES_CURRENT (-2)
+
+typedef struct SmsFilesApi {
+	uint32_t size;
+	/* The mod's folder beside the card (made on first use). */
+	const char* (*dir)(SmsMod* mod);
+	/* The file's size (it may be more than cap: that much is read), or -1
+	   when there is none. buf may be NULL to ask the size. */
+	int (*read)(SmsMod* mod, int scope, const char* name, void* buf, uint32_t cap);
+	/* 1 written (or kept for the save), 0 not (a bad name or scope, too big). */
+	int (*write)(SmsMod* mod, int scope, const char* name, const void* data, uint32_t size);
+	/* 1 when it was there. */
+	int (*remove)(SmsMod* mod, int scope, const char* name);
+} SmsFilesApi;
+
 struct SmsApi {
 	uint32_t size;
 	uint16_t major, minor;
@@ -1511,6 +1637,7 @@ struct SmsApi {
 	/* API 1.5: the game's SMS_MOD_API_PRERELEASE, 0 when it carries a release
 	   of its minor version (check api->size). */
 	uint32_t prerelease;
+	const SmsFilesApi* files;       /* API 1.5 beta 6 (SMS_API_HAS(api, files)) */
 };
 
 /* ------------------------------------------------------------------ the mod's side */

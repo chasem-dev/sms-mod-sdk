@@ -314,13 +314,22 @@ API 1.5 (beta 2) adds events in the manner of other games' modding APIs (an enti
 | `SMS_EV_GAME_SAVED` | the game was saved: the pause menu's save, the prompt, auto save | `SmsEvGameSaved` file | |
 | `SMS_EV_TIMER` | the HUD's timer (a timed event's, the red coins') started, stopped, or a countdown ran out | `SmsEvTimer` what (`SMS_TIMER_STARTED`, `_STOPPED`, `_OUT`), time (hundredths of a second) | |
 | `SMS_EV_SCRIPT_CALL` | a stage's event script calls one of the game's functions (`"startTimer"`, `"setNextStage"`, `"appearShine"`...; many a tick: the scripts poll) | `SmsEvScriptCall` name, owner, argc | |
+| `SMS_EV_SAVE_FILE` | (1.5 beta 6) a save file was loaded or started anew at file select, saved, copied or erased | `SmsEvSaveFile` what (`SMS_SAVE_FILE_LOADED`, `_NEW`, `_SAVED`, `_COPIED`, `_ERASED`), file (0..2), from (a copy's) | read and write its [files](#files) |
+| `SMS_EV_NOZZLE_FIRE` | (1.5 beta 6) FLUDD's trigger is about to fire: a burst (A while R is held, with the spray) or the pressure built up (rocket, hover, turbo) | `SmsEvNozzleFire` nozzle, how (`SMS_FIRE_BURST`, `_PRESSURE`) | cancel (it does not fire) |
+| `SMS_EV_SHINE_SETUP` | (1.5 beta 6) a Shine is made as its stage loads | `SmsEvShineSetup` object, shine, collected, model | name a model file of the mod's for it |
+| `SMS_EV_YOSHI_EGG` | (1.5 beta 6) whether Yoshi's egg is there: an egg the stage places, the plaza's egg event, that event's egg | `SmsEvYoshiEgg` kind (`SMS_EGG_STAGE`, `_PLAZA_EVENT`, `_EVENT_EGG`), present, object | change `present` |
+| `SMS_EV_EPISODE_SHINE` | (1.5 beta 6) the episode select or the pause menu asks which Shine an episode stands for | `SmsEvEpisodeShine` area, episode, shine | change `shine` |
 
 Notes on them:
 
 - **Before and after.** Events that may be changed or cancelled come before the game acts (`PLAYER_HEAL`, `PLAYER_HIT`, `FLAG_CHANGED`, `SOUND`, `MUSIC`, `SAVE_PROMPT`); the others tell what happened. `SMS_EV_PLAYER_STATUS` asks and may be refused by the game; `SMS_EV_PLAYER_STATUS_CHANGED`, `JUMP` and `LAND` come only for what he did.
 - **Damage and its source.** `SmsEvDamage.source` (check `ev->size`) is the enemy or object whose hit takes Mario's health, so a mod tells an enemy's attack from fire, goop or a hard landing (`source` NULL). `SMS_EV_PLAYER_DEATH`'s `source` is the same for the last health he lost. No damage comes once he has lost his life.
 - **Enemies' health.** `SMS_EV_ACTOR_DAMAGE` comes for the player's hits that take an enemy's health at once. Enemies keep their own rules: a stomp that defeats a small enemy takes it to 1 and then its defeat, a boss loses health on its own weak spots. `game->object_health` reads it at any time. Every defeated small enemy comes through `SMS_EV_ACTOR_DEATH`, and these bosses as they are beaten: Petey Piranha, Gooper Blooper, King Boo, Eely-Mouth and the hot Chain Chomp. A few enemies that explode in their own way (Bob-ombs, Bullet Bills) and the other bosses do not; the Shine a boss leaves comes through `SMS_EV_SHINE_APPEAR`.
-- **The spawn.** `SMS_EV_PLAYER_SPAWN` changes where the stage puts Mario as it would its own start: a stage whose opening turns Mario (a cutscene facing the camera) may still turn him. The Pinna Park coaster (`SMS_START_COASTER`) takes no place.
+- **The spawn.** `SMS_EV_PLAYER_SPAWN` changes where the stage puts Mario as it would its own start: a stage whose opening turns Mario (a cutscene facing the camera) may still turn him. The Pinna Park coaster (`SMS_START_COASTER`) takes no place. (1.5 beta 6) `kind` may be changed to `SMS_START_WAIT`, `_ROLL` or `_RETURN`: he starts that way, and a coaster start changed so is a start like any other stage's, without the coaster (and then takes a place). Nothing is changed to the coaster. Before beta 6 the coaster start came as `WAIT` or `ROLL`.
+- **FLUDD's trigger.** `SMS_EV_NOZZLE_FIRE` comes only for the player's Mario, as the trigger would fire: a burst once each time A is pressed while R is held (asked again at the next A when cancelled), the pressure's when it is full (cancelled, it is spent until R is let go, as after a launch). Holding R to spray, and the hover nozzle hovering, are not the trigger's and go on.
+- **A Shine's model.** `SMS_EV_SHINE_SETUP`'s `model` names a model file (`.bmd`) of the mod's, relative to its folder (`core->mod_dir`) or a full path; the Shine takes it instead of the game's (`collected`: the see-through one the game gives a Shine the file has). The Shine's animations play on it, so it keeps the Shine model's joints and materials: a Shine recoloured, say. A file is loaded once a stage, so many Shines may name the same one; a file that is not a model is left (the log says why). `game->object_set_color(shine, SMS_COLOR_MATERIAL, colour)` tints a model whose materials use their material colour (the game's Shine does); call it every tick to animate it. Every Shine of the same model shares its colours.
+- **Yoshi's egg.** `SMS_EV_YOSHI_EGG` comes as an egg loads (`SMS_EGG_STAGE`: there when the file has Yoshi's Shine, 0x21; in the plaza, once Yoshi has hatched there, flag 0x1038F), as the plaza's episode 8 sets up its egg event (`SMS_EGG_PLAZA_EVENT`: when Yoshi has not hatched and the file has Yoshi's Shine; the event writes flag 0x60003, which `SMS_EV_FLAG_CHANGED` may change), and as that event's own egg loads (`SMS_EGG_EVENT_EGG`: when the event was set up).
+- **Episodes' Shines.** `SMS_EV_EPISODE_SHINE` is the game's own table (`world->episode_shine`) where the episode select and the pause menu read it: the episode's name, whether it shows collected, and so how many episodes the select offers (an episode past the last collected one is the newest). The select asks for each episode as it opens and as its cursor moves; return quickly. Which episode a stage loads is not changed (`SMS_EV_STAGE_LOADING` does that).
 - **Flags and sounds are many.** `SMS_EV_FLAG_CHANGED` comes for every flag the game writes one at a time (several as a stage loads); `SMS_EV_SOUND` and `SMS_EV_SCRIPT_CALL` come many times a tick. Filter by `id` or `name` and return quickly.
 - **Object names.** Actors' names are the stage's, often Japanese (Shift-JIS); their actor type is the way to tell them apart: `SMS_ACTOR_ENEMY`, `SMS_ACTOR_BOSS`, `SMS_ACTOR_ITEM` (coins 0x2000000E, Shines 0x20000013), `SMS_ACTOR_OBJECT`, and `game->object_type`.
 
@@ -356,6 +365,7 @@ Notes:
 | `api->native` | the game's own objects, for mods built against the decomp's headers |
 | `api->net` | (1.2) the multiplayer game: its players, and on the host the commands to their games ([Server mods](#server-mods)) |
 | `api->world` | (1.4) the game's worlds, their areas and episodes, and its camera cutscenes ([world](#world)) |
+| `api->files` | (1.5 beta 6) the mod's own files beside the memory card, and per save file ([files](#files)) |
 
 Every table starts with `size`, the size the game was built with. Tables only grow at their ends, so a mod checks a function from a later minor version is there with `SMS_API_HAS(api->draw, some_new_function)` before calling it.
 Structs a mod passes in for the game to fill (`SmsGameState`, `SmsPlayer`, `SmsCamera`, `SmsPad`) start with a `size` the mod sets to `sizeof` the struct; the game fills only that much, so an old mod works with a newer game and the other way round.
@@ -394,6 +404,7 @@ Structs a mod passes in for the game to fill (`SmsGameState`, `SmsPlayer`, `SmsC
 | `ground(&p, &g)` | (1.4) the ground at a point, as Mario finds it: the floor below (from a little above `p`), its collision type, whether it is water's surface, the water's surface over the point (`has_water`, `water_y`) and the roof above; 0 off the stage's map |
 | `object_type(obj)` | (1.5) an object's actor type (`SMS_ACTOR_*` bits and its number), 0 when it has none |
 | `object_health(obj, &max)` | (1.5) an enemy's health now, and its most (`max` may be NULL); -1 when it is not one with health |
+| `object_set_color(obj, which, colour)` | (1.5 beta 6) one of the colours of an object's model, in all its materials: `SMS_COLOR_MATERIAL` (its material colour, with alpha) or `SMS_COLOR_TEV0`..`TEV2` (TEV colour registers). What changes is what the model's materials make of that colour; a model's own colour animation sets it again as it plays. Every object of the same model shares them. 0 when it has no model |
 | `set_hud_hidden(mod, mask)`, `hud_hidden()` | (1.5 beta 3) hide parts of the game's own HUD in this game, single player included: `mask` is [`SMS_HUD_*`](#commands) bits ORed (`COINS`, `SHINES`, `BLUE_COINS`, `HEALTH`, `WATER`, `LIVES`, `RED_COINS`; 0 shows them again). The parts are left out of the HUD's drawing only: the HUD carries on underneath (its animations, sounds, FLUDD's messages), the counters' sparkles go with them, and a part shown again is as the game has it. Each mod's mask is its own and goes when the mod unloads; it lasts across stages. `hud_hidden` is the bits hidden now, whoever hides them (a mod, a server, or the player's own HUD settings where the game has them). Panels a mod draws are not affected |
 
 Objects (`SmsObject`) come from events and `find_object`; they are good until the stage changes. Do not keep them across `SMS_EV_STAGE_LEAVING`.
@@ -452,6 +463,46 @@ static int on_leaving(SmsMod* mod, SmsEvent* ev, void* user)
     return SMS_CONTINUE;
 }
 ```
+
+### files
+
+API 1.5 beta 6 (`SMS_API_HAS(api, files)`): a mod's own files, kept beside the memory card in `<card folder>-mods/<mod id>/` (`card-a-mods/<id>/` by default), so they go with the player's card wherever it is kept (the launcher's save backups include them). A multiplayer guest's copy of the host's card has a folder of its own.
+
+| Function | |
+| --- | --- |
+| `dir(mod)` | the mod's folder there (made on first use) |
+| `read(mod, scope, name, buf, cap)` | the file's size, or -1 when there is none; up to `cap` bytes into `buf` (`buf` NULL asks the size) |
+| `write(mod, scope, name, data, size)` | 1 written, or kept for the save; 0 not (a bad name or scope, too big) |
+| `remove(mod, scope, name)` | 1 when it was there |
+
+`scope`:
+
+- `SMS_FILES_MOD`: the mod's own files, written at once (the settings, a mod's records across files).
+- `0`, `1`, `2`: save file A, B or C of the game being played (Super Mario Sunshine's and Super Mario Eclipse's kept apart, in `<id>/<game code>-<A|B|C>/`), kept as the card keeps the file:
+  - What the mod writes to the file being played is kept and written when the game saves that file (the pause menu, the save prompt, auto save). A game quit without saving leaves its files as they were, as the card is. Reading the file being played gives what the mod wrote since.
+  - A new game in a file starts with none (its old files go at its first save).
+  - Copying or erasing a file at file select copies or erases every mod's files of it.
+  - Writing to a file that is not the one being played writes it at once.
+- `SMS_FILES_CURRENT`: the file being played (from its load or new game at file select; none before).
+
+Names are letters, digits, `.`, `_` and `-`, 1 to 64 characters, not starting with `.`; a file is at most 1 MiB. `SMS_EV_SAVE_FILE` tells when a file is loaded (`SMS_SAVE_FILE_LOADED`: read its files there), started anew (`SMS_SAVE_FILE_NEW`: write its first ones), saved, copied or erased.
+
+```c
+static int onSaveFile(SmsMod* mod, SmsEvent* ev, void* user)
+{
+	const SmsEvSaveFile* f = (const SmsEvSaveFile*)ev->data;
+	if (f->what == SMS_SAVE_FILE_NEW) {
+		uint32_t seed = new_seed();
+		api->files->write(mod, SMS_FILES_CURRENT, "seed.bin", &seed, sizeof seed); /* saved with the file */
+	} else if (f->what == SMS_SAVE_FILE_LOADED) {
+		if (api->files->read(mod, SMS_FILES_CURRENT, "seed.bin", &g_seed, sizeof g_seed) != sizeof g_seed)
+			g_seed = new_seed(); /* a file from before the mod */
+	}
+	return 0;
+}
+```
+
+`core->data_dir` is still the place for what is not the player's progress (caches, logs); `config` keeps settings there.
 
 ### draw, input, config, audio
 
@@ -609,7 +660,7 @@ They have Lua's whole standard library, `io` and `os` included, so a script mod 
 ### Events in Lua
 
 `sms.on(name, function(ev) ... end [, priority])` subscribes and returns a handle for `sms.off(handle)`.
-The names are the C events' without `SMS_EV_`, in lower case: `frame`, `tick`, `draw`, `stage_loaded`, `stage_exit_request`, `stage_leaving`, `life_lost`, `game_over`, `coins_reset`, `file_selected`, `item_collected`, `pad_read`, `key`, `cutscene`, `goop_cleaned`, `object_hit`, `save_state_request`, `hide_player_model`, `player_status`, `player_damage`, `shine_collected`, `camera`, `object_move`, `mod_loaded`, `shutdown`, and for multiplayer `net_player_joined`, `net_player_left`, `net_player_arrived`, `net_session` (`{slot, name, character}`; the session's `{area, episode, session}`), (1.4) `stage_start`, and (1.5) `player_nozzle` (`{from, to, animate, reason, box}`, `reason` `"switch"`, `"swap"`, `"box"` or `"stage_start"`; set `ev.to` to change it), and (1.5 beta 2) `player_spawn`, `player_status_changed`, `player_jump`, `player_land`, `player_hit`, `player_heal`, `player_death`, `player_mount`, `player_water`, `yoshi_hatch`, `yoshi_eat`, `actor_spawn`, `actor_damage`, `actor_death`, `shine_appear`, `shine_get`, `map_event`, `flag_changed`, `sound`, `music`, `talk`, `cutscene_end`, `pause`, `mode_changed`, `save_prompt`, `game_saved`, `timer`, `script_call` (fields below), and (1.5 beta 4) `stage_loading` (`{area, episode, reason, shine, from_area, from_episode}`). Stage events (`stage_loaded`, `stage_leaving`, `stage_start`, `life_lost`, `file_selected`) carry `{area, episode, reason, shine}`, `reason` a name: `"shine"`, `"exit_area"`, `"life_lost"`, `"game_over"`, `"way_out"`, `"warp"`, `"file"` or `"other"`.
+The names are the C events' without `SMS_EV_`, in lower case: `frame`, `tick`, `draw`, `stage_loaded`, `stage_exit_request`, `stage_leaving`, `life_lost`, `game_over`, `coins_reset`, `file_selected`, `item_collected`, `pad_read`, `key`, `cutscene`, `goop_cleaned`, `object_hit`, `save_state_request`, `hide_player_model`, `player_status`, `player_damage`, `shine_collected`, `camera`, `object_move`, `mod_loaded`, `shutdown`, and for multiplayer `net_player_joined`, `net_player_left`, `net_player_arrived`, `net_session` (`{slot, name, character}`; the session's `{area, episode, session}`), (1.4) `stage_start`, and (1.5) `player_nozzle` (`{from, to, animate, reason, box}`, `reason` `"switch"`, `"swap"`, `"box"` or `"stage_start"`; set `ev.to` to change it), and (1.5 beta 2) `player_spawn`, `player_status_changed`, `player_jump`, `player_land`, `player_hit`, `player_heal`, `player_death`, `player_mount`, `player_water`, `yoshi_hatch`, `yoshi_eat`, `actor_spawn`, `actor_damage`, `actor_death`, `shine_appear`, `shine_get`, `map_event`, `flag_changed`, `sound`, `music`, `talk`, `cutscene_end`, `pause`, `mode_changed`, `save_prompt`, `game_saved`, `timer`, `script_call` (fields below), (1.5 beta 4) `stage_loading` (`{area, episode, reason, shine, from_area, from_episode}`), and (1.5 beta 6) `save_file`, `nozzle_fire`, `shine_setup`, `yoshi_egg`, `episode_shine` (fields below). Stage events (`stage_loaded`, `stage_leaving`, `stage_start`, `life_lost`, `file_selected`) carry `{area, episode, reason, shine}`, `reason` a name: `"shine"`, `"exit_area"`, `"life_lost"`, `"game_over"`, `"way_out"`, `"warp"`, `"file"` or `"other"`.
 Any other name is a custom event (`"stage-timer.split"`).
 Priorities: `sms.FIRST`, `sms.EARLY`, `sms.NORMAL` (the default), `sms.LATE`, `sms.MONITOR`.
 
@@ -640,7 +691,7 @@ The handler gets a table: `ev.type` (the name), `ev.cancelled` and `ev.cancelled
 | `camera` | **`position`**, **`target`**, **`fovy`**, `aspect` |
 | `object_move` | `object`, `after` |
 | `mod_loaded` | `id`, `name`, `version` |
-| `player_spawn` | **`position`**, **`yaw`**, **`has_position`** (a new `position` sets it), `kind` (`"wait"`, `"roll"`, `"return"`, `"coaster"`) |
+| `player_spawn` | **`position`**, **`yaw`**, **`has_position`** (a new `position` sets it), **`kind`** (`"wait"`, `"roll"`, `"return"`, `"coaster"`; (1.5 beta 6) set `"wait"`, `"roll"` or `"return"`) |
 | `player_status_changed` | `from`, `to`, `arg` |
 | `player_jump` | `status`, `from`, `position`, `velocity` |
 | `player_land` | `status`, `from`, `fall`, `speed`, `position` |
@@ -663,6 +714,11 @@ The handler gets a table: `ev.type` (the name), `ev.cancelled` and `ev.cancelled
 | `mode_changed` | `from`, `to` (as `mode`) |
 | `save_prompt` | `kind` (`"shine"`, `"blue_coin"`, `"nozzle"`, `"yoshi"`) |
 | `game_saved` | `file` |
+| `save_file` | `what` (`"loaded"`, `"new"`, `"saved"`, `"copied"`, `"erased"`), `file`, `from` (a copy's) |
+| `nozzle_fire` | `nozzle`, `how` (`"burst"`, `"pressure"`); return `true` to stop it |
+| `shine_setup` | `object`, `shine`, `collected`, **`model`** (a `.bmd` file: relative to the script mod's folder, or a full path; `false` the game's) |
+| `yoshi_egg` | `kind` (`"stage"`, `"plaza_event"`, `"event_egg"`), **`present`**, `object` |
+| `episode_shine` | `area`, `episode`, **`shine`** |
 | `timer` | `what` (`"started"`, `"stopped"`, `"out"`), `time` |
 | `script_call` | `name`, `owner`, `argc` |
 | a custom event | `data`: the payload's bytes as a string |
@@ -706,6 +762,8 @@ Objects are light userdata, for `sms.object_name`, `sms.object_position` and `sm
 | `sms.rgb(r, g, b)`, `sms.rgba(r, g, b, a)` | colours (or write `0xRRGGBBAA`) |
 | `sms.object_count(from, to, kind)`, `sms.object_info(from, to, kind, index)`, `sms.ground(pos)` | (1.4) the stage's objects (a table: `type`, `kind`, `position`, `rotation`, `scale`, `alive`, `hidden`, `spawned`), and the ground at a point (`floor`, `floor_type`, `water`, `water_y`, `roof`) |
 | `sms.object_type(o)`, `sms.object_health(o)` | (1.5) an object's actor type; an enemy's health and its most (`local hp, max = sms.object_health(o)`; nothing when it has none) |
+| `sms.set_object_color(o, which, colour)` | (1.5 beta 6) one of an object's model's colours: `which` `"material"`, `"tev0"`, `"tev1"` or `"tev2"` (see `game->object_set_color`) |
+| `sms.files_read(name [, file])`, `sms.files_write(name, data [, file])`, `sms.files_remove(name [, file])`, `sms.files_dir()` | (1.5 beta 6) the mod's [files](#files): `file` nil the mod's own, `0`..`2` a save file, `"current"` the one played. `files_read` gives the bytes as a string (or nil); `files_write` whether it was written (or kept for the save) |
 | `sms.set_hud_hidden{ coins = true, health = true, ... }`, `sms.hud_hidden()` | (1.5 beta 3) hide parts of the game's own HUD (`coins`, `shines`, `blue_coins`, `health`, `water`, `lives`, `red_coins`, or `all = true`; an empty table shows them again); returns whether the game can. `sms.hud_hidden()` is a table of what is hidden now |
 | `sms.world.kind(area)`, `sms.world.of(area)` | (1.4) what an area is (`"airstrip"`, `"plaza"`, `"world"`, `"world_part"`, `"secret"`, `"final"`, `"title"`, `"none"`); its world, or `nil` ([world](#world)) |
 | `sms.world.episodes(area)`, `sms.world.episode_shine(area, ep)`, `sms.world.episode_name(area, ep)`, `sms.world.next_episode(area)`, `sms.world.shine_episode(shine)` | its world's episodes: how many; an episode's Shine and name (`nil`: none); the one the episode select offers; a Shine's episode and world (`nil`: not an episode's) |
@@ -1179,7 +1237,7 @@ New hook points go into `port_ext.h` once and serve both built-in extensions and
 | New content | files in `mods/<name>/files/` (game file mods) | a native mod switching on its own `files/`; new stages |
 | Sound | `audio->play_system_sound`; `SMS_EV_SOUND` and `SMS_EV_MUSIC` change or silence the game's | sounds placed in the world for any mod, a mod's own WAV/OGG |
 | Messages and text | `SMS_EV_TALK` (another message shown), `SMS_EV_SCRIPT_CALL` | the game's talk boxes with a mod's own text |
-| Saving a mod's progress | `config`, `core->data_dir` | per-save-file data; save-state events |
+| Saving a mod's progress | (1.5 beta 6) `api->files` beside the card, per save file (saved, copied and erased with it); `config`, `core->data_dir` | save-state events |
 | Multiplayer game modes | [server mods](#server-mods): `api->net`'s players and commands, dedicated servers | spawning actors and text in players' worlds; players' buttons; companion mods (`side = both`); the session comparing `gameplay` mods |
 | Scripting | Lua script mods (the `lua` mod), `core->host_runtime` for other languages | services for scripts; a sandboxed mode for script mods |
 | Anything else | `api->native` + the decomp's headers (same build only) | the code mods' retail-address hooks (`sms_modhook.h`, about 500 places the Eclipse port uses) offered to native mods |

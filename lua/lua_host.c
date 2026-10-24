@@ -29,6 +29,7 @@ typedef struct Script {
 	lua_State* L;
 	int errors;
 	char reason[128]; /* a save state refusal's reason, kept for the game */
+	char model[512];  /* a Shine's model a handler named, as a full path, kept for the game */
 	Ref* refs;
 	struct Script* next;
 } Script;
@@ -254,6 +255,11 @@ static const struct {
 	{"save_prompt", SMS_EV_SAVE_PROMPT},
 	{"stage_loading", SMS_EV_STAGE_LOADING},
 	{"net_player_splashed", SMS_EV_NET_PLAYER_SPLASHED},
+	{"save_file", SMS_EV_SAVE_FILE},
+	{"nozzle_fire", SMS_EV_NOZZLE_FIRE},
+	{"shine_setup", SMS_EV_SHINE_SETUP},
+	{"yoshi_egg", SMS_EV_YOSHI_EGG},
+	{"episode_shine", SMS_EV_EPISODE_SHINE},
 };
 
 static const char* const kLeaves[] = {"other", "way_out", "shine", "exit_area", "life_lost", "game_over", "warp", "file"};
@@ -268,6 +274,9 @@ static const char* deathName(int c) { return c >= 0 && c <= 6 ? kDeaths[c] : "ot
 static const char* const kStarts[] = {"wait", "roll", "return", "other", "coaster"};
 static const char* startName(int k) { return k >= 0 && k <= 4 ? kStarts[k] : "other"; }
 static const char* const kTalks[] = {"start", "message", "end"};
+static const char* const kSaveFiles[] = {"loaded", "new", "saved", "copied", "erased"};
+static const char* const kFires[] = {"burst", "pressure"};
+static const char* const kEggs[] = {"stage", "plaza_event", "event_egg"};
 static const char* const kPauses[] = {"menu", "map", "save"};
 static const char* const kTimers[] = {"started", "stopped", "out"};
 static const char* pick(const char* const* names, int n, int i) { return i >= 0 && i < n ? names[i] : "other"; }
@@ -701,6 +710,42 @@ static void pushEvent(lua_State* L, const SmsEvent* ev)
 		setvec(L, "position", &p->position);
 		break;
 	}
+	case SMS_EV_SAVE_FILE: {
+		const SmsEvSaveFile* p = (const SmsEvSaveFile*)d;
+		setstr(L, "what", pick(kSaveFiles, 5, p->what));
+		setint(L, "file", p->file);
+		if (p->from >= 0)
+			setint(L, "from", p->from);
+		break;
+	}
+	case SMS_EV_NOZZLE_FIRE: {
+		const SmsEvNozzleFire* p = (const SmsEvNozzleFire*)d;
+		setint(L, "nozzle", p->nozzle);
+		setstr(L, "how", pick(kFires, 2, p->how));
+		break;
+	}
+	case SMS_EV_SHINE_SETUP: {
+		const SmsEvShineSetup* p = (const SmsEvShineSetup*)d;
+		setobj(L, "object", p->object);
+		setint(L, "shine", p->shine);
+		setbool(L, "collected", p->collected);
+		setstr(L, "model", p->model);
+		break;
+	}
+	case SMS_EV_YOSHI_EGG: {
+		const SmsEvYoshiEgg* p = (const SmsEvYoshiEgg*)d;
+		setstr(L, "kind", pick(kEggs, 3, p->kind));
+		setbool(L, "present", p->present);
+		setobj(L, "object", p->object);
+		break;
+	}
+	case SMS_EV_EPISODE_SHINE: {
+		const SmsEvEpisodeShine* p = (const SmsEvEpisodeShine*)d;
+		setint(L, "area", p->area);
+		setint(L, "episode", p->episode);
+		setint(L, "shine", p->shine);
+		break;
+	}
 	default:
 		/* a custom event: its payload as a string of bytes (string.unpack reads structs) */
 		if (ev->type >= SMS_EV_CUSTOM_BASE && ev->size) {
@@ -787,6 +832,44 @@ static void readEvent(lua_State* L, int t, SmsEvent* ev, Script* s)
 		/* a new place is one to put him at */
 		if (p->position.x != was.x || p->position.y != was.y || p->position.z != was.z)
 			p->has_position = 1;
+		lua_getfield(L, t, "kind"); /* API 1.5 beta 6 */
+		if (lua_type(L, -1) == LUA_TSTRING) {
+			const char* k = lua_tostring(L, -1);
+			for (int i = 0; i <= 2; i++)
+				if (!strcmp(k, kStarts[i]))
+					p->kind = i;
+		}
+		lua_pop(L, 1);
+		break;
+	}
+	case SMS_EV_SHINE_SETUP: {
+		SmsEvShineSetup* p = (SmsEvShineSetup*)d;
+		lua_getfield(L, t, "model");
+		if (lua_type(L, -1) == LUA_TSTRING) {
+			const char* m = lua_tostring(L, -1);
+			if (!p->model || strcmp(m, p->model)) {
+				/* relative to the script mod's own folder */
+				const int full = m[0] == '/' || m[0] == '\\' || (m[0] && m[1] == ':');
+				snprintf(s->model, sizeof s->model, "%s%s%s", full ? "" : api->core->mod_dir(s->mod), full ? "" : "/", m);
+				p->model = s->model;
+			}
+		} else if (lua_isboolean(L, -1) && !lua_toboolean(L, -1)) {
+			p->model = NULL; /* false: the game's */
+		}
+		lua_pop(L, 1);
+		break;
+	}
+	case SMS_EV_YOSHI_EGG: {
+		SmsEvYoshiEgg* p = (SmsEvYoshiEgg*)d;
+		lua_getfield(L, t, "present");
+		if (lua_isboolean(L, -1))
+			p->present = lua_toboolean(L, -1);
+		lua_pop(L, 1);
+		break;
+	}
+	case SMS_EV_EPISODE_SHINE: {
+		SmsEvEpisodeShine* p = (SmsEvEpisodeShine*)d;
+		p->shine             = (int)fieldnum(L, t, "shine", (float)p->shine);
 		break;
 	}
 	case SMS_EV_FLAG_CHANGED: {
@@ -931,6 +1014,82 @@ static int l_is_loaded(lua_State* L)
 static int l_data_dir(lua_State* L)
 {
 	lua_pushstring(L, api->core->data_dir(MOD(L)));
+	return 1;
+}
+
+/* sms.files_read(name [, file]) -> the file's bytes as a string, or nil.
+   file: nil the mod's own, 0..2 a save file, "current" the one played
+   (API 1.5 beta 6). */
+static int filesScope(lua_State* L, int idx)
+{
+	if (lua_isnoneornil(L, idx))
+		return SMS_FILES_MOD;
+	if (lua_type(L, idx) == LUA_TSTRING && !strcmp(lua_tostring(L, idx), "current"))
+		return SMS_FILES_CURRENT;
+	return (int)luaL_checkinteger(L, idx);
+}
+
+static int l_files_read(lua_State* L)
+{
+	const char* name = luaL_checkstring(L, 1);
+	const int scope  = filesScope(L, 2);
+	if (!SMS_API_HAS(api, files)) {
+		lua_pushnil(L);
+		return 1;
+	}
+	const int n = api->files->read(MOD(L), scope, name, NULL, 0);
+	if (n < 0) {
+		lua_pushnil(L);
+		return 1;
+	}
+	char* buf = (char*)malloc(n ? (size_t)n : 1);
+	if (!buf)
+		return luaL_error(L, "out of memory");
+	const int got = api->files->read(MOD(L), scope, name, buf, (uint32_t)n);
+	lua_pushlstring(L, buf, got < 0 ? 0 : (size_t)(got < n ? got : n));
+	free(buf);
+	return 1;
+}
+
+/* sms.files_write(name, data [, file]) -> whether it was written (or kept for the save). */
+static int l_files_write(lua_State* L)
+{
+	size_t n;
+	const char* name = luaL_checkstring(L, 1);
+	const char* data = luaL_checklstring(L, 2, &n);
+	const int scope  = filesScope(L, 3);
+	lua_pushboolean(L, SMS_API_HAS(api, files) && api->files->write(MOD(L), scope, name, data, (uint32_t)n));
+	return 1;
+}
+
+/* sms.files_remove(name [, file]) -> whether it was there. */
+static int l_files_remove(lua_State* L)
+{
+	const char* name = luaL_checkstring(L, 1);
+	const int scope  = filesScope(L, 2);
+	lua_pushboolean(L, SMS_API_HAS(api, files) && api->files->remove(MOD(L), scope, name));
+	return 1;
+}
+
+/* sms.files_dir() -> the mod's folder beside the memory card, or nil. */
+static int l_files_dir(lua_State* L)
+{
+	if (SMS_API_HAS(api, files))
+		lua_pushstring(L, api->files->dir(MOD(L)));
+	else
+		lua_pushnil(L);
+	return 1;
+}
+
+/* sms.set_object_color(obj, which, color) -> whether it has a model; which:
+   "material", "tev0", "tev1", "tev2" (API 1.5 beta 6). */
+static int l_set_object_color(lua_State* L)
+{
+	static const char* const kWhich[] = {"material", "tev0", "tev1", "tev2", NULL};
+	SmsObject o     = (SmsObject)lua_touserdata(L, 1);
+	const int which = luaL_checkoption(L, 2, "material", kWhich);
+	const SmsColor c = (SmsColor)(lua_Unsigned)luaL_checkinteger(L, 3);
+	lua_pushboolean(L, SMS_API_HAS(api->game, object_set_color) && o && api->game->object_set_color(o, which, c));
 	return 1;
 }
 
@@ -2154,6 +2313,8 @@ static const luaL_Reg kSms[] = {
 	{"cube_count", l_cube_count}, {"in_cube", l_in_cube},
 	{"object_count", l_object_count}, {"object_info", l_object_info}, {"ground", l_ground},
 	{"object_type", l_object_type}, {"object_health", l_object_health},
+	{"files_read", l_files_read}, {"files_write", l_files_write}, {"files_remove", l_files_remove},
+	{"files_dir", l_files_dir}, {"set_object_color", l_set_object_color},
 	{NULL, NULL},
 };
 
