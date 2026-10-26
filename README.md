@@ -49,7 +49,7 @@ project(my_mod C)
 include(FetchContent)
 FetchContent_Declare(sms_mod_sdk
   GIT_REPOSITORY https://github.com/chasem-dev/sms-mod-sdk.git
-  GIT_TAG v1.4.0)
+  GIT_TAG v1.5.0)
 FetchContent_MakeAvailable(sms_mod_sdk)
 
 sms_add_mod(mod src/my_mod.c)   # mod/ holds mod.ini and whatever ships with it
@@ -61,7 +61,7 @@ cmake --build build
 ```
 
 `-DFETCHCONTENT_SOURCE_DIR_SMS_MOD_SDK=<path>` builds against a checkout of the SDK instead of the tag.
-To try the next version while it is made, name a pre-release's tag (`GIT_TAG v1.5.0-beta.1`) and run the mod in a beta build of the game: [MODDING.md, "Pre-releases"](docs/MODDING.md#pre-releases).
+To try the next version while it is made, name a pre-release's tag (`GIT_TAG v1.6.0-beta.1`, once there is one) and run the mod in a beta build of the game: [MODDING.md, "Pre-releases"](docs/MODDING.md#pre-releases).
 `sms::mod_sdk` is the headers alone, for a library built some other way.
 
 **Without CMake:** put `include/` on the include path. A mod exports `sms_mod_api_version` (`SMS_MOD_DEFINE()`) and `sms_mod_load`, and its library goes in `mods/<id>/bin/<platform>/` beside the `mod.ini`. The platforms: `linux-x86`, `linux-x86_64`, `linux-arm64`, `windows-x86`, `windows-x86_64`, `macos-x86_64`, `macos-arm64`.

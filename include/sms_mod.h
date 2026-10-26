@@ -28,7 +28,7 @@
  * checks a function is there with SMS_API_HAS before calling it. A new major
  * version is an incompatible change; the game refuses mods of another major.
  *
- * Pre-releases: v1.5.0-beta.1, -beta.2, ... lead to v1.5.0. A beta has the
+ * Pre-releases: v1.6.0-beta.1, -beta.2, ... lead to v1.6.0. A beta has the
  * next minor version and SMS_MOD_API_PRERELEASE its number; what a beta added
  * may still change before the release, so a mod built against one is rebuilt
  * against the release (the game warns of a mod built against another beta).
@@ -42,7 +42,7 @@
 #define SMS_MOD_API_MAJOR 1
 #define SMS_MOD_API_MINOR 5
 /* 0 in a release; N in the pre-release vMAJOR.MINOR.0-beta.N (API 1.5) */
-#define SMS_MOD_API_PRERELEASE 8
+#define SMS_MOD_API_PRERELEASE 0
 #define SMS_MOD_API_VERSION ((uint32_t)SMS_MOD_API_MAJOR << 16 | SMS_MOD_API_MINOR)
 
 #if defined(_WIN32)
@@ -200,7 +200,7 @@ typedef enum SmsEventType {
 	   box is left out of the stage). */
 	SMS_EV_PLAYER_NOZZLE = 31,
 
-	/* API 1.5 beta 2: events for every kind of mod. Those of Mario are only
+	/* API 1.5: events for every kind of mod. Those of Mario are only
 	   for the player's Mario (not Shadow Mario); actors are the stage's
 	   enemies, items and other objects (SmsObject, with their actor type). */
 
@@ -299,7 +299,7 @@ typedef enum SmsEventType {
 	   (save yourself, or not); the stage goes on as after the prompt.
 	   SmsEvSavePrompt. */
 	SMS_EV_SAVE_PROMPT = 59,
-	/* (API 1.5 beta 4) A stage is about to load, its episode chosen: every
+	/* (API 1.5) A stage is about to load, its episode chosen: every
 	   stage the game loads, as SMS_EV_STAGE_LOADED is sent for, but before it
 	   loads. After a world's episode select (the episode picked), after the
 	   game picks the episode itself (the plaza, Hotel Delfino, Pinna Park and
@@ -309,36 +309,36 @@ typedef enum SmsEventType {
 	   before the movie some stages open with (that stage's: the one that
 	   loads). SmsEvStageLoading. */
 	SMS_EV_STAGE_LOADING = 60,
-	/* (API 1.5 beta 5) Host: a player's FLUDD water hit another player, as
+	/* (API 1.5) Host: a player's FLUDD water hit another player, as
 	   the shooter's game saw it (only while SMS_RULE_WATER_HITS is in force:
 	   docs/MODDING.md, "Water fights"). The drops that hit since the last
 	   report, about ten reports a second while they keep hitting.
 	   SmsEvNetSplash. */
 	SMS_EV_NET_PLAYER_SPLASHED = 61,
-	/* (API 1.5 beta 6) A save file was loaded or started anew at file
+	/* (API 1.5) A save file was loaded or started anew at file
 	   select, saved (the pause menu's save, the save prompt, auto save),
 	   copied or erased. Its files (files->*, scope 0..2) are as the card has
 	   them now. SmsEvSaveFile. */
 	SMS_EV_SAVE_FILE = 62,
-	/* (API 1.5 beta 6) FLUDD's trigger is about to fire: a burst (A while R
+	/* (API 1.5) FLUDD's trigger is about to fire: a burst (A while R
 	   is held, with the spray) or the pressure built up (the rocket, hover
 	   and turbo nozzles). Only the player's Mario. Cancellable: cancel and it
 	   does not fire (R is pressed again to try again). SmsEvNozzleFire. */
 	SMS_EV_NOZZLE_FIRE = 63,
-	/* (API 1.5 beta 6) A Shine is made, as its stage loads: its model may be
+	/* (API 1.5) A Shine is made, as its stage loads: its model may be
 	   one of the mod's (`model`). SmsEvShineSetup. */
 	SMS_EV_SHINE_SETUP = 64,
-	/* (API 1.5 beta 6) Whether Yoshi's egg is there: an egg the stage
+	/* (API 1.5) Whether Yoshi's egg is there: an egg the stage
 	   places, or the plaza's egg event. Changeable (`present`).
 	   SmsEvYoshiEgg. */
 	SMS_EV_YOSHI_EGG = 65,
-	/* (API 1.5 beta 6) Which Shine an episode stands for, as the episode
+	/* (API 1.5) Which Shine an episode stands for, as the episode
 	   select and the pause menu show it: its name, and whether it is shown
 	   collected (the episode select's marks, and so how many episodes it
 	   offers). Changeable (`shine`). Many a time: the select asks as its
 	   cursor moves. SmsEvEpisodeShine. */
 	SMS_EV_EPISODE_SHINE = 66,
-	/* (API 1.5 beta 7) A file chosen at file select is about to start (the
+	/* (API 1.5) A file chosen at file select is about to start (the
 	   game leaves for its first stage): after SMS_EV_SAVE_FILE's LOADED or
 	   NEW, again at each step of the file select (more than once a frame;
 	   time a wait with core->time) while a mod cancels it, then
@@ -430,7 +430,7 @@ typedef enum SmsLeaveReason {
 	SMS_LEAVE_FILE = 7       /* a file was chosen at file select */
 } SmsLeaveReason;
 
-/* SMS_EV_STAGE_LOADING (API 1.5 beta 4). Its first fields are SmsEvStage's. */
+/* SMS_EV_STAGE_LOADING (API 1.5). Its first fields are SmsEvStage's. */
 typedef struct SmsEvStageLoading {
 	/* The stage about to load. Changeable: that one loads instead, as if the
 	   game had chosen it (a world's episode is recorded as its episode select
@@ -544,7 +544,7 @@ typedef struct SmsEvPlayerStatus {
 typedef struct SmsEvDamage {
 	int amount;     /* changeable */
 	int underwater; /* air is lost (or gained), not health */
-	/* API 1.5 beta 2 (check ev->size): what hurts him, the enemy or object
+	/* API 1.5 (check ev->size): what hurts him, the enemy or object
 	   that hit him; NULL for the ground's damage (fire, goop, a fall), his
 	   air under water, and SMS_EV_PLAYER_HEAL. */
 	SmsObject source;
@@ -579,7 +579,7 @@ typedef struct SmsEvPlayerNozzle {
 	SmsObject box; /* SMS_NOZZLE_BOX: the box; else NULL */
 } SmsEvPlayerNozzle;
 
-/* SmsEvPlayerJump (API 1.5 beta 2) */
+/* SmsEvPlayerJump (API 1.5) */
 typedef struct SmsEvPlayerJump {
 	uint32_t status;   /* the jump (docs/MODDING.md, Mario statuses): 0x02000880 a jump,
 	                      0x02000881 second, 0x00000882 triple, 0x00000883 back flip... */
@@ -588,7 +588,7 @@ typedef struct SmsEvPlayerJump {
 	SmsVec3 velocity;  /* units a tick, as he leaves the ground */
 } SmsEvPlayerJump;
 
-/* SmsEvPlayerLand (API 1.5 beta 2) */
+/* SmsEvPlayerLand (API 1.5) */
 typedef struct SmsEvPlayerLand {
 	uint32_t status;   /* the status he lands into */
 	uint32_t from;     /* the one he had in the air */
@@ -597,7 +597,7 @@ typedef struct SmsEvPlayerLand {
 	SmsVec3 position;
 } SmsEvPlayerLand;
 
-/* SmsEvPlayerDeath.cause (API 1.5 beta 2) */
+/* SmsEvPlayerDeath.cause (API 1.5) */
 typedef enum SmsDeathCause {
 	SMS_DEATH_OTHER = 0,    /* a stage's script (a timed event failed), the coaster */
 	SMS_DEATH_HEALTH = 1,   /* no health left: an enemy, fire, a hard fall */
@@ -614,7 +614,7 @@ typedef struct SmsEvPlayerDeath {
 	SmsObject source;   /* SMS_DEATH_HEALTH: what took his last health, when an enemy did; else NULL */
 } SmsEvPlayerDeath;
 
-/* SmsEvPlayerSpawn.kind (API 1.5 beta 2): how the stage brings him in */
+/* SmsEvPlayerSpawn.kind (API 1.5): how the stage brings him in */
 #define SMS_START_WAIT    0 /* standing */
 #define SMS_START_ROLL    1 /* rolling in (out of a pipe, through a painting) */
 #define SMS_START_RETURN  2 /* back from a world */
@@ -625,14 +625,13 @@ typedef struct SmsEvPlayerSpawn {
 	float yaw;         /* degrees, as SmsPlayer's; changeable */
 	int has_position;  /* 0: the stage puts him where its scene file does (position is
 	                      that); set 1 with a position to put him somewhere */
-	/* SMS_START_*. (API 1.5 beta 6) Changeable: WAIT, ROLL or RETURN starts
+	/* SMS_START_*. Changeable: WAIT, ROLL or RETURN starts
 	   him that way; a COASTER start changed to one of them is a stage start
-	   like any other's, without the coaster (none is changed to COASTER).
-	   Before beta 6 a coaster start came as WAIT or ROLL. */
+	   like any other's, without the coaster (none is changed to COASTER). */
 	int kind;
 } SmsEvPlayerSpawn;
 
-/* SmsEvPlayerMount.mount (API 1.5 beta 2) */
+/* SmsEvPlayerMount.mount (API 1.5) */
 #define SMS_MOUNT_YOSHI   0
 #define SMS_MOUNT_BLOOPER 1
 
@@ -649,7 +648,7 @@ typedef struct SmsEvPlayerWater {
 	SmsVec3 position;
 } SmsEvPlayerWater;
 
-/* Yoshi's colours (API 1.5 beta 2) */
+/* Yoshi's colours (API 1.5) */
 #define SMS_YOSHI_GREEN  0
 #define SMS_YOSHI_ORANGE 1
 #define SMS_YOSHI_PURPLE 2
@@ -661,7 +660,7 @@ typedef struct SmsEvYoshi {
 	SmsVec3 position;
 } SmsEvYoshi;
 
-/* SMS_EV_ACTOR_SPAWN, SMS_EV_ACTOR_DEATH (API 1.5 beta 2) */
+/* SMS_EV_ACTOR_SPAWN, SMS_EV_ACTOR_DEATH (API 1.5) */
 typedef struct SmsEvActor {
 	SmsObject object;
 	uint32_t actor_type; /* the game's actor type (SMS_ACTOR_* bits) */
@@ -688,7 +687,7 @@ typedef struct SmsEvActorDamage {
 	SmsVec3 position;
 } SmsEvActorDamage;
 
-/* SMS_EV_SHINE_APPEAR, SMS_EV_SHINE_GET (API 1.5 beta 2) */
+/* SMS_EV_SHINE_APPEAR, SMS_EV_SHINE_GET (API 1.5) */
 typedef struct SmsEvShineActor {
 	SmsObject object;
 	int shine;          /* its number (0..119; Eclipse's own beyond), -1 none */
@@ -696,7 +695,7 @@ typedef struct SmsEvShineActor {
 	SmsVec3 position;
 } SmsEvShineActor;
 
-/* SmsEvSaveFile.what (API 1.5 beta 6) */
+/* SmsEvSaveFile.what (API 1.5) */
 #define SMS_SAVE_FILE_LOADED 0 /* chosen at file select, read from the card */
 #define SMS_SAVE_FILE_NEW    1 /* chosen at file select, empty: a new game */
 #define SMS_SAVE_FILE_SAVED  2
@@ -714,7 +713,7 @@ typedef struct SmsEvFileStarting {
 	int is_new; /* 1 a new game (SMS_SAVE_FILE_NEW), 0 a file loaded */
 } SmsEvFileStarting;
 
-/* SmsEvNozzleFire.how (API 1.5 beta 6) */
+/* SmsEvNozzleFire.how (API 1.5) */
 #define SMS_FIRE_BURST    0 /* A while R is held */
 #define SMS_FIRE_PRESSURE 1 /* R held until the pressure is full */
 
@@ -737,7 +736,7 @@ typedef struct SmsEvShineSetup {
 	const char* model;
 } SmsEvShineSetup;
 
-/* SmsEvYoshiEgg.kind (API 1.5 beta 6) */
+/* SmsEvYoshiEgg.kind (API 1.5) */
 #define SMS_EGG_STAGE       0 /* an egg the stage places: there when the file has Yoshi's Shine (0x21; in the plaza, once Yoshi has hatched there: flag 0x1038F) */
 #define SMS_EGG_PLAZA_EVENT 1 /* the plaza's egg event is set up (its episode 8): when Yoshi has not hatched yet and the file has Yoshi's Shine */
 #define SMS_EGG_EVENT_EGG   2 /* the egg of the plaza's egg event: there when the event was set up (flag 0x60003 is 1) */
@@ -772,7 +771,7 @@ typedef struct SmsEvMusic {
 	int start;         /* 1 starting, 0 stopping */
 } SmsEvMusic;
 
-/* SmsEvTalk.what (API 1.5 beta 2) */
+/* SmsEvTalk.what (API 1.5) */
 #define SMS_TALK_START   0
 #define SMS_TALK_MESSAGE 1
 #define SMS_TALK_END     2
@@ -785,7 +784,7 @@ typedef struct SmsEvTalk {
 	int last;          /* SMS_TALK_MESSAGE: the talk ends after this one */
 } SmsEvTalk;
 
-/* SmsEvPause.kind (API 1.5 beta 2) */
+/* SmsEvPause.kind (API 1.5) */
 #define SMS_PAUSE_MENU 0 /* the pause menu */
 #define SMS_PAUSE_MAP  1 /* the map (the guide) */
 #define SMS_PAUSE_SAVE 2 /* a save screen */
@@ -809,7 +808,7 @@ typedef struct SmsEvGameSaved {
 	int file;          /* 0..2 */
 } SmsEvGameSaved;
 
-/* SmsEvTimer.what (API 1.5 beta 2) */
+/* SmsEvTimer.what (API 1.5) */
 #define SMS_TIMER_STARTED 0 /* `time` a countdown's, 0 counting up */
 #define SMS_TIMER_STOPPED 1 /* `time` what it shows: a race's time */
 #define SMS_TIMER_OUT     2 /* a countdown reached 0 */
@@ -825,7 +824,7 @@ typedef struct SmsEvScriptCall {
 	int argc;
 } SmsEvScriptCall;
 
-/* SmsEvSavePrompt.kind (API 1.5 beta 2) */
+/* SmsEvSavePrompt.kind (API 1.5) */
 #define SMS_SAVE_BLUE_COIN 1
 #define SMS_SAVE_NOZZLE    3 /* a nozzle's box opened for good (3 or 4) */
 #define SMS_SAVE_YOSHI     5
@@ -863,7 +862,7 @@ typedef struct SmsEvNetSession {
 	uint32_t session;  /* its number, for api->net->session() */
 } SmsEvNetSession;
 
-/* SMS_EV_NET_PLAYER_SPLASHED (API 1.5 beta 5) */
+/* SMS_EV_NET_PLAYER_SPLASHED (API 1.5) */
 typedef struct SmsEvNetSplash {
 	int slot;          /* the player the water hit */
 	int by;            /* whose water it was */
@@ -991,12 +990,12 @@ typedef struct SmsGameApi {
 	   little above it), whether that is water, the water's surface over p,
 	   and the roof above. 0 off the stage's map. */
 	int (*ground)(const SmsVec3* p, SmsGround* out);
-	/* API 1.5 beta 2: an object's actor type (SMS_ACTOR_* bits and its
+	/* API 1.5: an object's actor type (SMS_ACTOR_* bits and its
 	   number), 0 when it has none; an enemy's health (and its most, into max,
 	   which may be NULL), -1 when it is not one with health. */
 	uint32_t (*object_type)(SmsObject obj);
 	int (*object_health)(SmsObject obj, int* max);
-	/* API 1.5 beta 3: hide parts of the game's own HUD in this game, in any
+	/* API 1.5: hide parts of the game's own HUD in this game, in any
 	   game (single player too, unlike the host-only SMS_CMD_HUD): mask is
 	   SMS_HUD_* bits ORed, 0 shows them all again. The parts are left out of
 	   the HUD's drawing only, so the HUD carries on as ever underneath (its
@@ -1009,7 +1008,7 @@ typedef struct SmsGameApi {
 	   mod draws with draw->* are not affected. */
 	void (*set_hud_hidden)(SmsMod* mod, uint32_t mask);
 	uint32_t (*hud_hidden)(void);
-	/* API 1.5 beta 6: one of the colours of an object's model, in every
+	/* API 1.5: one of the colours of an object's model, in every
 	   material of it (SMS_COLOR_*): its material colour (with alpha), or a
 	   TEV colour register. What it changes is what the model's materials
 	   make of that colour; a model's own colour animation sets it again as
@@ -1019,7 +1018,7 @@ typedef struct SmsGameApi {
 	int (*object_set_color)(SmsObject obj, int which, SmsColor color);
 } SmsGameApi;
 
-/* game->object_set_color's `which` (API 1.5 beta 6) */
+/* game->object_set_color's `which` (API 1.5) */
 #define SMS_COLOR_MATERIAL 0 /* the material colour (channel 0), with alpha */
 #define SMS_COLOR_TEV0     1 /* TEV colour registers 0..2 */
 #define SMS_COLOR_TEV1     2
@@ -1084,18 +1083,18 @@ typedef struct SmsPlayerApi {
 	/* API 1.5. What he wears: the aloha shirt, the sunglasses, the diving
 	   helmet; each 1 on, 0 off, -1 as it is. 0 when there is no Mario. */
 	int (*set_outfit)(int shirt, int sunglasses, int helmet);
-	/* API 1.5 beta 8. Mario turns to face `degrees` (SmsPlayer.yaw's: 0 faces
+	/* API 1.5. Mario turns to face `degrees` (SmsPlayer.yaw's: 0 faces
 	   +Z, 90 faces +X) at once, his model too: FLUDD sprays that way. A
 	   first-person camera's aim. 0 when there is no Mario. */
 	int (*set_yaw)(float degrees);
-	/* API 1.5 beta 8. While `on`, Mario's body and FLUDD face `yaw` degrees
+	/* API 1.5. While `on`, Mario's body and FLUDD face `yaw` degrees
 	   (as set_yaw) whichever way he moves (he still walks where the stick
 	   says), and FLUDD tilts `pitch` degrees up (negative down) whatever his
 	   stance, so FLUDD sprays that way: a first-person camera's aim, spraying
 	   where it looks while walking sideways. 0 gives him his own aim back;
 	   so does the mod unloading. 0 when there is no Mario. */
 	int (*set_aim)(int on, float yaw, float pitch);
-	/* API 1.5 beta 8. Parts of Mario left out while the rest of him is
+	/* API 1.5. Parts of Mario left out while the rest of him is
 	   drawn (SMS_PLAYER_PART_*, ORed; 0 draws all of him again): a
 	   first-person camera, where the player sees his body looking down.
 	   Each mod's parts are its own and go when it unloads; the game leaves
@@ -1103,7 +1102,7 @@ typedef struct SmsPlayerApi {
 	int (*set_hidden_parts)(uint32_t parts);
 } SmsPlayerApi;
 
-/* player->set_hidden_parts (API 1.5 beta 8) */
+/* player->set_hidden_parts (API 1.5) */
 #define SMS_PLAYER_PART_HEAD  1u /* his head: face, hair and cap */
 #define SMS_PLAYER_PART_FLUDD 2u /* FLUDD (it still sprays) */
 
@@ -1423,15 +1422,15 @@ typedef enum SmsCmdType {
 	SMS_CMD_SHAKE = 23,
 	/* The controller rumbles: i[0] 0 weak, 1 hard, i[1] times (1 or more). */
 	SMS_CMD_RUMBLE = 24,
-	/* API 1.5 beta 5. Player i[0] was splashed, as Shadow Mario is when
+	/* API 1.5. Player i[0] was splashed, as Shadow Mario is when
 	   FLUDD's water hits him: a splash at f[0..2] with his hit sound, the
-	   player's model flushed for a moment (API 1.5 beta 7: f[3] seconds;
-	   0 about 0.8; beta 5 and 6 games: 4) and, when i[2] > 0, his water
-	   meter over their head, i[1] of i[2] full, for twenty seconds. i[3]
-	   SMS_SPLASH_* bits. Send it to everyone: each game shows it on its own
-	   copy of that player (the player's own game on its Mario). */
+	   player's model flushed for a moment (f[3] seconds; 0 about 0.8) and,
+	   when i[2] > 0, his water meter over their head, i[1] of i[2] full,
+	   for twenty seconds. i[3] SMS_SPLASH_* bits. Send it to everyone:
+	   each game shows it on its own copy of that player (the player's own
+	   game on its Mario). */
 	SMS_CMD_SPLASH = 25,
-	/* API 1.5 beta 7. An arena's edge: the player is kept within f[3] units
+	/* API 1.5. An arena's edge: the player is kept within f[3] units
 	   (across the ground) of f[0..2], pushed back in as they reach it, and
 	   with SMS_BOUNDS_RING in i[0] a solid line on the ground and the water
 	   marks it, in i[1]'s colour (0xRRGGBBAA; 0 red). f2[0] seconds: the
@@ -1491,30 +1490,30 @@ typedef enum SmsCmdType {
 #define SMS_PLAYER_HEALTH    3 /* i[1]: 0 to 8 (0 does not lose a life) */
 #define SMS_PLAYER_WATER     4 /* i[1]: FLUDD's tank, 0 to 100 percent */
 #define SMS_PLAYER_NOZZLE    5 /* i[1]: 0 spray, 1 rocket, 2 underwater, 4 hover, 5 turbo */
-#define SMS_PLAYER_ADD_WATER 6 /* API 1.5 beta 7. i[1]: percent of a full tank added (less when negative) */
-#define SMS_PLAYER_WATER_USE 7 /* API 1.5 beta 7. i[1]: FLUDD uses water at this percent of its own rate
+#define SMS_PLAYER_ADD_WATER 6 /* API 1.5. i[1]: percent of a full tank added (less when negative) */
+#define SMS_PLAYER_WATER_USE 7 /* API 1.5. i[1]: FLUDD uses water at this percent of its own rate
                                   (200 twice as fast; 100 as the game does), for the session */
-#define SMS_PLAYER_FLUDD     8 /* API 1.5 beta 7. i[1]: 1 FLUDD on the player's back, 0 off it */
+#define SMS_PLAYER_FLUDD     8 /* API 1.5. i[1]: 1 FLUDD on the player's back, 0 off it */
 
 /* SMS_CMD_RULES's bits */
 #define SMS_RULE_NO_FLUDD   1u /* FLUDD sprays nothing */
 #define SMS_RULE_NO_DAMAGE  2u /* no health lost (falls and drops still cost a life) */
 #define SMS_RULE_NO_PAUSE   4u /* no pause menu or map */
 #define SMS_RULE_NO_PICKUPS 8u /* coins and items stay where they are */
-/* API 1.5 beta 5: FLUDD's water hits the other players. The shooter's game
+/* API 1.5: FLUDD's water hits the other players. The shooter's game
    reports each hit to the host (SMS_EV_NET_PLAYER_SPLASHED) and the drop
    stops there; a server mod says what a hit does (SMS_CMD_SPLASH). */
 #define SMS_RULE_WATER_HITS 16u
-/* API 1.5 beta 7: FLUDD fills up only as the server says (SMS_PLAYER_WATER,
+/* API 1.5: FLUDD fills up only as the server says (SMS_PLAYER_WATER,
    SMS_PLAYER_ADD_WATER): not from the water around (sea, pools, fountains),
    bottles (a server's spawned ones too: their look and sparkle without the
    water, which the server gives), fruit and 1-ups, or a barrel's hip drop. */
 #define SMS_RULE_NO_REFILL 32u
 
-/* SMS_CMD_BOUNDS's i[0] bits (API 1.5 beta 7) */
+/* SMS_CMD_BOUNDS's i[0] bits (API 1.5) */
 #define SMS_BOUNDS_RING 1u /* draw the edge: a solid line along the ground */
 
-/* SMS_CMD_SPLASH's i[3] bits (API 1.5 beta 5) */
+/* SMS_CMD_SPLASH's i[3] bits (API 1.5) */
 #define SMS_SPLASH_DOWN  1u /* the meter is empty: they are knocked down, as Shadow Mario falls */
 #define SMS_SPLASH_QUIET 2u /* no splash or sound: the meter alone (a player joining sees it) */
 
@@ -1578,7 +1577,7 @@ typedef struct SmsNetApi {
 	   joined, back after a lost life): SMS_RESPAWN_*, at p facing yaw
 	   degrees, after the session's sticky commands. NONE: the stage's own. */
 	int (*set_respawn)(int slot, int how, const SmsVec3* p, float yaw);
-	/* API 1.5 beta 5. Players collide with each other: in every game, its
+	/* API 1.5. Players collide with each other: in every game, its
 	   player is kept out of the others (running into one bumps them back, as
 	   into an enemy) and lands on their heads as on an enemy's. The host's
 	   setting (its settings menu, SMS_MULTIPLAYER_COLLISION) until a server
@@ -1642,7 +1641,7 @@ typedef struct SmsWorldApi {
 	int (*cutscene_playing)(void);
 } SmsWorldApi;
 
-/* Files (API 1.5 beta 6, SMS_API_HAS(api, files)): the mod's own, beside
+/* Files (API 1.5, SMS_API_HAS(api, files)): the mod's own, beside
    the memory card, in <card folder>-mods/<mod id>/ (card-a-mods/<id>/ by
    default), so they go with the player's card wherever it is kept.
 
@@ -1691,7 +1690,7 @@ struct SmsApi {
 	/* API 1.5: the game's SMS_MOD_API_PRERELEASE, 0 when it carries a release
 	   of its minor version (check api->size). */
 	uint32_t prerelease;
-	const SmsFilesApi* files;       /* API 1.5 beta 6 (SMS_API_HAS(api, files)) */
+	const SmsFilesApi* files;       /* API 1.5 (SMS_API_HAS(api, files)) */
 };
 
 /* ------------------------------------------------------------------ the mod's side */
