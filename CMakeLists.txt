@@ -10,7 +10,7 @@
 cmake_minimum_required(VERSION 3.16)
 # no languages of its own: a project that uses it (C, C++, or a script mod's
 # NONE) needs no compiler it did not ask for
-project(sms_mod_sdk VERSION 1.5.0 LANGUAGES NONE)
+project(sms_mod_sdk VERSION 1.6.0 LANGUAGES NONE)
 
 if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
   set(_sms_mod_sdk_top ON)

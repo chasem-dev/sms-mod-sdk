@@ -261,6 +261,7 @@ static const struct {
 	{"yoshi_egg", SMS_EV_YOSHI_EGG},
 	{"episode_shine", SMS_EV_EPISODE_SHINE},
 	{"file_starting", SMS_EV_FILE_STARTING},
+	{"file_menu", SMS_EV_FILE_MENU},
 };
 
 static const char* const kLeaves[] = {"other", "way_out", "shine", "exit_area", "life_lost", "game_over", "warp", "file"};
@@ -280,6 +281,7 @@ static const char* const kFires[] = {"burst", "pressure"};
 static const char* const kEggs[] = {"stage", "plaza_event", "event_egg"};
 static const char* const kPauses[] = {"menu", "map", "save"};
 static const char* const kTimers[] = {"started", "stopped", "out"};
+static const char* const kFileMenu[] = {"start", "copy", "erase", "score"};
 static const char* pick(const char* const* names, int n, int i) { return i >= 0 && i < n ? names[i] : "other"; }
 static const char* savePromptName(int k)
 {
@@ -744,6 +746,15 @@ static void pushEvent(lua_State* L, const SmsEvent* ev)
 		const SmsEvFileStarting* p = (const SmsEvFileStarting*)d;
 		setint(L, "file", p->file);
 		setbool(L, "is_new", p->is_new);
+		break;
+	}
+	case SMS_EV_FILE_MENU: {
+		const SmsEvFileMenu* p = (const SmsEvFileMenu*)d;
+		setint(L, "file", p->file);
+		setbool(L, "is_empty", p->is_empty);
+		setbool(L, "open", p->open);
+		if (p->item >= 0)
+			setstr(L, "item", pick(kFileMenu, 4, p->item));
 		break;
 	}
 	case SMS_EV_EPISODE_SHINE: {

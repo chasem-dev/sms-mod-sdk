@@ -40,9 +40,9 @@
 #include <stdint.h>
 
 #define SMS_MOD_API_MAJOR 1
-#define SMS_MOD_API_MINOR 5
+#define SMS_MOD_API_MINOR 6
 /* 0 in a release; N in the pre-release vMAJOR.MINOR.0-beta.N (API 1.5) */
-#define SMS_MOD_API_PRERELEASE 0
+#define SMS_MOD_API_PRERELEASE 1
 #define SMS_MOD_API_VERSION ((uint32_t)SMS_MOD_API_MAJOR << 16 | SMS_MOD_API_MINOR)
 
 #if defined(_WIN32)
@@ -346,6 +346,11 @@ typedef enum SmsEventType {
 	   waits as it is, this step (a mod's own screen first: a game's options,
 	   a seed). SmsEvFileStarting. */
 	SMS_EV_FILE_STARTING = 67,
+	/* (API 1.6) A save file's menu at file select (START, COPY, ERASE,
+	   SCORE; the player jumped under its block) opened, ready for the
+	   player's choice, or closed: an item chosen, or B. Before the game
+	   acts on the choice, after its sound. SmsEvFileMenu. */
+	SMS_EV_FILE_MENU = 68,
 
 	/* core->event_id hands out ids from here for mods' own events. */
 	SMS_EV_CUSTOM_BASE = 0x10000
@@ -712,6 +717,21 @@ typedef struct SmsEvFileStarting {
 	int file;   /* 0..2 (A, B, C); -1 a game without a memory card */
 	int is_new; /* 1 a new game (SMS_SAVE_FILE_NEW), 0 a file loaded */
 } SmsEvFileStarting;
+
+/* SmsEvFileMenu.item (API 1.6): the file menu's items, in order */
+#define SMS_FILE_MENU_START 0
+#define SMS_FILE_MENU_COPY  1
+#define SMS_FILE_MENU_ERASE 2
+#define SMS_FILE_MENU_SCORE 3
+
+typedef struct SmsEvFileMenu {
+	int file;     /* 0..2 (A, B, C) */
+	int is_empty; /* 1 the file has no game ("New"): the menu offers START alone */
+	int open;     /* 1 opened, 0 closed */
+	int item;     /* opened: the item the cursor is on (START); closed: the
+	                 item chosen (SMS_FILE_MENU_*), -1 closed without a
+	                 choice (B, or the memory card taken out) */
+} SmsEvFileMenu;
 
 /* SmsEvNozzleFire.how (API 1.5) */
 #define SMS_FIRE_BURST    0 /* A while R is held */

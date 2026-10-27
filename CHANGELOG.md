@@ -4,6 +4,13 @@ A release's tag is the API version (`v1.1.0` is API 1.1). Within a major version
 
 Pre-releases (`v1.5.0-beta.1`, `-beta.2`, ...) lead to a release and are listed under it, newest first, until it comes out. What a beta added may still change before the release; see [Pre-releases](docs/MODDING.md#pre-releases).
 
+## 1.6.0 (in beta)
+
+### 1.6.0-beta.1
+
+- `SMS_EV_FILE_MENU` (`SmsEvFileMenu`: `file`, `is_empty`, `open`, `item`): a save file's menu at file select (START, COPY, ERASE, SCORE) opened, ready for the player's choice, or closed, with the item chosen (`SMS_FILE_MENU_*`) or -1 for B. A mod's screen for a new game can open with the menu and hand the player's A or B on to it, so the player can still go back (docs/MODDING.md, "A file's menu"). In Lua, `file_menu` (`item` `"start"`, `"copy"`, `"erase"`, `"score"`, or `nil`).
+- The lua mod is version 1.6.0-beta.1.
+
 ## 1.5.0
 
 FLUDD's nozzles and Mario's outfit, for mods that decide what Mario has (a randomizer's unlocks, a challenge's rules); events for every kind of mod, in the manner of other games' modding APIs: what Mario does, what happens to the stage's actors, and what the game does around them; a mod's own files beside the memory card; water fights and arenas for server mods; and Mario's facing, aim and parts for first-person cameras.
