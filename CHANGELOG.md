@@ -6,6 +6,14 @@ Pre-releases (`v1.5.0-beta.1`, `-beta.2`, ...) lead to a release and are listed 
 
 ## 1.6.0 (in beta)
 
+### 1.6.0-beta.2
+
+- `SMS_EV_EPISODE_SELECT` (`SmsEvEpisodeSelect`: `area`, `offered`, `first`, `max_offered`): a world's episode select is opening. `offered` (how many episodes it offers, from the first; 1 to `max_offered`) and `first` (the episode the cursor starts on) may be changed: every episode from the start, say, or the cursor elsewhere. In Super Mario Eclipse `max_offered` is 0 and only `first` may change. In Lua, `episode_select`.
+- `SMS_EV_SHINE_TOUCH` (`SmsEvShineTouch`: `object`, `shine`, `had`, `position`, `take`): Mario touched a Shine he is about to take, before its Shine Get. `take` `SMS_SHINE_TAKE_QUIET` takes it out of the stage with no Shine Get (no demo, no save, the stage not left, no `SMS_EV_SHINE_GET`, its flag as it was), and Mario plays on; cancel and he leaves it. A mod gives what the Shine stands for its own way (docs/MODDING.md, "Taking a Shine another way"). In Lua, `shine_touch` (`take` `"get"` or `"quiet"`).
+- `SMS_EV_PLAYER_STATUS` also comes for the statuses the game set without asking: a spin jump started in the air, and the landing of a throw in a jump. They may be changed or refused as every other; `SMS_EV_PLAYER_STATUS_CHANGED` comes for the throw's landing too.
+- `SMS_LEAVE_STATE_LOAD` (8): a save state's load going to its stage; `SMS_EV_STAGE_LEAVING` and `SMS_EV_STAGE_LOADING` come with it, but where it goes is not changed. The port's warp menu is `SMS_LEAVE_WARP`, as `game->warp` is. Neither is `SMS_LEAVE_WAY_OUT` any longer, nor sends `SMS_EV_STAGE_EXIT_REQUEST`: a mod that shuffles stages leaves them alone. In Lua, `"state_load"`.
+- The lua mod is version 1.6.0-beta.2.
+
 ### 1.6.0-beta.1
 
 - `SMS_EV_FILE_MENU` (`SmsEvFileMenu`: `file`, `is_empty`, `open`, `item`): a save file's menu at file select (START, COPY, ERASE, SCORE) opened, ready for the player's choice, or closed, with the item chosen (`SMS_FILE_MENU_*`) or -1 for B. A mod's screen for a new game can open with the menu and hand the player's A or B on to it, so the player can still go back (docs/MODDING.md, "A file's menu"). In Lua, `file_menu` (`item` `"start"`, `"copy"`, `"erase"`, `"score"`, or `nil`).

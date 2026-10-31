@@ -262,10 +262,13 @@ static const struct {
 	{"episode_shine", SMS_EV_EPISODE_SHINE},
 	{"file_starting", SMS_EV_FILE_STARTING},
 	{"file_menu", SMS_EV_FILE_MENU},
+	{"episode_select", SMS_EV_EPISODE_SELECT},
+	{"shine_touch", SMS_EV_SHINE_TOUCH},
 };
 
-static const char* const kLeaves[] = {"other", "way_out", "shine", "exit_area", "life_lost", "game_over", "warp", "file"};
-static const char* leaveName(int r) { return r >= 0 && r <= 7 ? kLeaves[r] : "other"; }
+static const char* const kLeaves[] = {"other",     "way_out", "shine", "exit_area", "life_lost",
+                                     "game_over", "warp",    "file",  "state_load"};
+static const char* leaveName(int r) { return r >= 0 && r <= 8 ? kLeaves[r] : "other"; }
 
 static const char* const kNozzleReasons[] = {"switch", "swap", "box", "stage_start"};
 static const char* nozzleReasonName(int r) { return r >= 0 && r <= 3 ? kNozzleReasons[r] : "switch"; }
@@ -282,6 +285,7 @@ static const char* const kEggs[] = {"stage", "plaza_event", "event_egg"};
 static const char* const kPauses[] = {"menu", "map", "save"};
 static const char* const kTimers[] = {"started", "stopped", "out"};
 static const char* const kFileMenu[] = {"start", "copy", "erase", "score"};
+static const char* const kShineTakes[] = {"get", "quiet"};
 static const char* pick(const char* const* names, int n, int i) { return i >= 0 && i < n ? names[i] : "other"; }
 static const char* savePromptName(int k)
 {
@@ -764,6 +768,23 @@ static void pushEvent(lua_State* L, const SmsEvent* ev)
 		setint(L, "shine", p->shine);
 		break;
 	}
+	case SMS_EV_EPISODE_SELECT: {
+		const SmsEvEpisodeSelect* p = (const SmsEvEpisodeSelect*)d;
+		setint(L, "area", p->area);
+		setint(L, "offered", p->offered);
+		setint(L, "first", p->first);
+		setint(L, "max_offered", p->max_offered);
+		break;
+	}
+	case SMS_EV_SHINE_TOUCH: {
+		const SmsEvShineTouch* p = (const SmsEvShineTouch*)d;
+		setobj(L, "object", p->object);
+		setint(L, "shine", p->shine);
+		setbool(L, "had", p->had);
+		setvec(L, "position", &p->position);
+		setstr(L, "take", pick(kShineTakes, 2, p->take));
+		break;
+	}
 	default:
 		/* a custom event: its payload as a string of bytes (string.unpack reads structs) */
 		if (ev->type >= SMS_EV_CUSTOM_BASE && ev->size) {
@@ -888,6 +909,20 @@ static void readEvent(lua_State* L, int t, SmsEvent* ev, Script* s)
 	case SMS_EV_EPISODE_SHINE: {
 		SmsEvEpisodeShine* p = (SmsEvEpisodeShine*)d;
 		p->shine             = (int)fieldnum(L, t, "shine", (float)p->shine);
+		break;
+	}
+	case SMS_EV_EPISODE_SELECT: {
+		SmsEvEpisodeSelect* p = (SmsEvEpisodeSelect*)d;
+		p->offered            = (int)fieldnum(L, t, "offered", (float)p->offered);
+		p->first              = (int)fieldnum(L, t, "first", (float)p->first);
+		break;
+	}
+	case SMS_EV_SHINE_TOUCH: {
+		SmsEvShineTouch* p = (SmsEvShineTouch*)d;
+		lua_getfield(L, t, "take");
+		if (lua_type(L, -1) == LUA_TSTRING)
+			p->take = strcmp(lua_tostring(L, -1), "quiet") == 0 ? SMS_SHINE_TAKE_QUIET : SMS_SHINE_TAKE_GET;
+		lua_pop(L, 1);
 		break;
 	}
 	case SMS_EV_FLAG_CHANGED: {
