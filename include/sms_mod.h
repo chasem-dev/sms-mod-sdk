@@ -42,7 +42,7 @@
 #define SMS_MOD_API_MAJOR 1
 #define SMS_MOD_API_MINOR 6
 /* 0 in a release; N in the pre-release vMAJOR.MINOR.0-beta.N (API 1.5) */
-#define SMS_MOD_API_PRERELEASE 1
+#define SMS_MOD_API_PRERELEASE 2
 #define SMS_MOD_API_VERSION ((uint32_t)SMS_MOD_API_MAJOR << 16 | SMS_MOD_API_MINOR)
 
 #if defined(_WIN32)
@@ -114,8 +114,9 @@ typedef enum SmsEventType {
 	SMS_EV_DRAW = 3,
 	/* A stage's objects are loaded and set up. SmsEvStage. */
 	SMS_EV_STAGE_LOADED = 4,
-	/* The game asks to leave for another area (pipes, paintings, scripts).
-	   Cancellable: cancel to stay. SmsEvStageExit. */
+	/* The game asks to leave for another area (pipes, paintings, scripts;
+	   a mod's game->warp). Not (1.6) the port's warp menu nor a save
+	   state's load. Cancellable: cancel to stay. SmsEvStageExit. */
 	SMS_EV_STAGE_EXIT_REQUEST = 5,
 	/* The stage is about to change (every way out). The payload's area and
 	   episode may be changed: the game goes there instead. SmsEvStage. */
@@ -158,7 +159,9 @@ typedef enum SmsEventType {
 	SMS_EV_HIDE_PLAYER_MODEL = 18,
 	/* Mario's status (his action: running, jumping, swimming...) is about
 	   to change. `to` and `arg` may be changed. Cancellable: cancel and he
-	   stays as he is. SmsEvPlayerStatus. */
+	   stays as he is. (1.6) Also for the statuses the game sets without
+	   asking (a spin jump started in the air, the landing of a throw in a
+	   jump); a `to` changed there is set the same way. SmsEvPlayerStatus. */
 	SMS_EV_PLAYER_STATUS = 19,
 	/* Mario is about to lose health (or air, under water). `amount` may be
 	   changed. Cancellable: cancel and he loses nothing. SmsEvDamage. */
@@ -254,7 +257,8 @@ typedef enum SmsEventType {
 	SMS_EV_SHINE_APPEAR = 46,
 	/* Mario took a Shine: every time, a Shine the file has too (before its
 	   Shine Get; SMS_EV_SHINE_COLLECTED comes when a new one is counted).
-	   SmsEvShineActor. */
+	   (1.6) SMS_EV_SHINE_TOUCH comes first, as he touches it, and may have
+	   it taken without its Shine Get. SmsEvShineActor. */
 	SMS_EV_SHINE_GET = 47,
 	/* A save-file flag (game->flag_get's) is about to change: coins, lives,
 	   Shines, blue coins, red coins, events... `value` may be changed.
@@ -351,6 +355,17 @@ typedef enum SmsEventType {
 	   player's choice, or closed: an item chosen, or B. Before the game
 	   acts on the choice, after its sound. SmsEvFileMenu. */
 	SMS_EV_FILE_MENU = 68,
+	/* (API 1.6) A world's episode select is opening: how many episodes it
+	   offers and the one its cursor starts on (the game's: the episodes up
+	   to the one after the newest whose Shine the file has, that one first).
+	   Changeable (`offered`, `first`). SmsEvEpisodeSelect. */
+	SMS_EV_EPISODE_SELECT = 69,
+	/* (API 1.6) Mario touched a Shine and is about to take it: before its
+	   Shine Get (he has not moved to it yet). `take` may be changed:
+	   SMS_SHINE_TAKE_QUIET takes it out of the stage with no Shine Get, and
+	   Mario plays on. Cancellable: cancel and he leaves it where it is (this
+	   comes again each tick he touches it). SmsEvShineTouch. */
+	SMS_EV_SHINE_TOUCH = 70,
 
 	/* core->event_id hands out ids from here for mods' own events. */
 	SMS_EV_CUSTOM_BASE = 0x10000
@@ -431,8 +446,9 @@ typedef enum SmsLeaveReason {
 	SMS_LEAVE_EXIT_AREA = 3, /* the pause menu's Exit Area */
 	SMS_LEAVE_LIFE_LOST = 4, /* Mario lost a life */
 	SMS_LEAVE_GAME_OVER = 5, /* Mario lost his last life */
-	SMS_LEAVE_WARP = 6,      /* a mod's game->warp */
-	SMS_LEAVE_FILE = 7       /* a file was chosen at file select */
+	SMS_LEAVE_WARP = 6,      /* a mod's game->warp, or (1.6) the port's warp menu */
+	SMS_LEAVE_FILE = 7,      /* a file was chosen at file select */
+	SMS_LEAVE_STATE_LOAD = 8 /* (1.6) a save state's load goes to its stage (where it goes can't be changed) */
 } SmsLeaveReason;
 
 /* SMS_EV_STAGE_LOADING (API 1.5). Its first fields are SmsEvStage's. */
@@ -732,6 +748,31 @@ typedef struct SmsEvFileMenu {
 	                 item chosen (SMS_FILE_MENU_*), -1 closed without a
 	                 choice (B, or the memory card taken out) */
 } SmsEvFileMenu;
+
+/* SMS_EV_EPISODE_SELECT (API 1.6) */
+typedef struct SmsEvEpisodeSelect {
+	int area;        /* the world's area (game->state's numbers) */
+	int offered;     /* how many episodes it offers, from the first
+	                    (1..max_offered); changeable */
+	int first;       /* the episode its cursor starts on (0..offered - 1);
+	                    changeable */
+	int max_offered; /* the most it can offer (8); 0 when `offered` can't be
+	                    changed (Super Mario Eclipse's select, which its own
+	                    code fills) */
+} SmsEvEpisodeSelect;
+
+/* SmsEvShineTouch.take (API 1.6) */
+#define SMS_SHINE_TAKE_GET   0 /* the game's: its Shine Get, its save, the stage left */
+#define SMS_SHINE_TAKE_QUIET 1 /* it goes from the stage and Mario plays on: no
+                                  Shine Get (no SMS_EV_SHINE_GET), its flag as it was */
+
+typedef struct SmsEvShineTouch {
+	SmsObject object;
+	int shine;          /* its number (0..119; Eclipse's own beyond), -1 none */
+	int had;            /* the file has it already */
+	SmsVec3 position;
+	int take;           /* SMS_SHINE_TAKE_*; changeable */
+} SmsEvShineTouch;
 
 /* SmsEvNozzleFire.how (API 1.5) */
 #define SMS_FIRE_BURST    0 /* A while R is held */
