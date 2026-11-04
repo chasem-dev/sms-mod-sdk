@@ -6,6 +6,11 @@ Pre-releases (`v1.5.0-beta.1`, `-beta.2`, ...) lead to a release and are listed 
 
 ## 1.6.0 (in beta)
 
+### 1.6.0-beta.3
+
+- `SMS_CMD_GOOP` (docs/MODDING.md, "Goop"): server mods paint the stage's goop over a disc (`SMS_GOOP_PAINT`, on every goop surface under it, or with `SMS_GOOP_AT_HEIGHT` only the one near its height), clean it (`SMS_GOOP_CLEAN`), and colour it: each paint is in one of 64 tints (0 the stage's own goop), and `SMS_GOOP_TINT` draws a tint in a colour (`0xRRGGBBAA`, the alpha how strongly), the goop's shading kept. Paints and cleans are everyone's, in order with the players' cleaning, a newcomer's game too; tints are per player, sticky per tint. In Lua, `type = "goop"` (`what` `"paint"`, `"clean"`, `"tint"`; `position`, `radius`, `tint`, `at_height`, `color`).
+- The lua mod is version 1.6.0-beta.3.
+
 ### 1.6.0-beta.2
 
 - `SMS_EV_EPISODE_SELECT` (`SmsEvEpisodeSelect`: `area`, `offered`, `first`, `max_offered`): a world's episode select is opening. `offered` (how many episodes it offers, from the first; 1 to `max_offered`) and `first` (the episode the cursor starts on) may be changed: every episode from the start, say, or the cursor elsewhere. In Super Mario Eclipse `max_offered` is 0 and only `first` may change. In Lua, `episode_select`.

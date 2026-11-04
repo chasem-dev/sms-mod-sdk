@@ -937,6 +937,7 @@ Mods load once multiplayer has started, so `net->role()` is right while they loa
 | `SMS_CMD_RUMBLE` (1.4) | `i[0]` 1 hard, 0 weak, `i[1]` times | `hard`, `times` | the player's controller rumbles (as their own rumble setting allows) |
 | `SMS_CMD_BOUNDS` (1.5) | `f[0..2]` the middle, `f[3]` the radius (0: none), `i[0]` `SMS_BOUNDS_RING`, `i[1]` its colour, `f2[0]` seconds to glide there | `position`, `radius`, `ring`, `color`, `seconds` | an arena's edge: the player is kept within the radius of the middle, across the ground, pushed back in as they reach it (riders too); with a ring, a solid line marks it on the ground and the water. With seconds, the edge glides from where it was to the new radius, the same in every game |
 | `SMS_CMD_SPLASH` (1.5) | `i[0]` the player splashed, `i[1]` their meter, `i[2]` its full (0: no meter), `i[3]` `SMS_SPLASH_DOWN`, `SMS_SPLASH_QUIET`, `f[0..2]` where the water hit, `f[3]` how long they are flushed, seconds (0: 0.8) | `slot`, `meter`, `full`, `down`, `quiet`, `position`, `flush` | that player splashed as Shadow Mario is ([Water fights](#water-fights)); send it to everyone, each game shows it on its copy of them |
+| `SMS_CMD_GOOP` (1.6 beta 3) | `i[0]` `SMS_GOOP_PAINT` / `CLEAN` / `TINT`; PAINT and CLEAN: `f[0..2]` the middle, `f[3]` the radius, `i[1]` the tint (PAINT), `i[3]` `SMS_GOOP_AT_HEIGHT`; TINT: `i[1]` the tint, `i[2]` its colour | `what` (`"paint"`, `"clean"`, `"tint"`), `position`, `radius`, `tint`, `at_height`, `color` | the stage's goop ([below](#goop)): painted over a disc in one of the session's tints, cleaned off one, or a tint drawn in a colour |
 
 Every command also takes:
 
@@ -1068,6 +1069,37 @@ sms.on("net_player_arrived", function(ev)
   sms.net.send(ev.slot, { type = "notice", text = "Welcome to the beach party, " .. ev.name .. "!" })
 end)
 ```
+
+### Goop
+
+(API 1.6 beta 3.) `SMS_CMD_GOOP` paints the stage's goop, cleans it, and colours it: a goop arena, a trail behind a player, each team's goop in its colour.
+
+- **Where there can be goop.** A stage has goop only on its goop surfaces: the stretches of ground (and in Noki Bay walls) its own goop can cover, with what kind of goop it is there (sticky, burning, electric, sinking). Delfino Plaza, the Airstrip, Bianco Hills, Ricco Harbor, Pianta Village, Noki Bay and Sirena Beach have them in some of their episodes; most other stages and the secret courses have none, and a paint there does nothing (`SMS_MULTIPLAYER_DEBUG=1` has the game's log say how many surfaces each paint reached). Painted goop is the stage's own: it hurts, burns or holds Mario as the stage's goop there does, FLUDD cleans it, and it counts towards what the stage's events ask cleaned.
+- **`SMS_GOOP_PAINT`** covers a disc of radius `f[3]` about `f[0..2]` with goop, with the game's own soft-edged stamp, in tint `i[1]`. It covers every surface under the disc, seen from above (from the front, for a wall), whatever its height: a disc over a slope or a cliff paints both. With `SMS_GOOP_AT_HEIGHT` in `i[3]`, only the surface within about 64 units of `f[1]`, as the game's own goop and FLUDD's water go (a bridge over painted ground stays clean). Paint over goop already there turns it to the new tint. A big area is one big disc, or several.
+- **`SMS_GOOP_CLEAN`** cleans the disc at once, as FLUDD would (the place back to tint 0, so goop the stage grows back there is its own colour again).
+- **Tints.** Each paint is in one of `SMS_GOOP_TINTS` tints (0 to 63), and each tint has a colour: `SMS_GOOP_TINT` with `i[1]` the tint and `i[2]` its colour, `0xRRGGBBAA`, the alpha how strongly (`FF` wholly that colour, `80` halfway, 0 the goop's own). The goop keeps its shading (its edges, gloss and the light on it): the colour is how a typical spot of it looks. Tint 0 is the stage's own goop, and what is painted in tint 0; give it a colour and the stage's goop changes with it. A tint's colour can change at any time, and all goop painted in it changes at once: paint each layer of goop in its own tint, then colour them as the game goes.
+- **Everyone's goop.** The goop is the session's, as its cleaning is: `PAINT` and `CLEAN` go to every player whatever `to` says, carried out at once (`delay_ms` is not used) and in the order they were sent among the players' own cleaning, so a newcomer's game, or one loading the stage again after a lost life, has the same goop. They are not sticky (`SMS_CMD_STICKY` is ignored; the session keeps them already). `TINT` is per player (two teams can see each other's goop in different colours) and should be sent sticky, so a player arriving later sees the colours too; sticky tints replace each other per tint.
+- Games older than 1.6 beta 3 leave all of it out: ask for `client_api = 1.6` (or check `api_version`) when the game mode needs it.
+
+```c
+/* a pool of blue goop and a ring of red around it, in the plaza */
+SmsCmd c = {0};
+c.size = sizeof c;
+c.type = SMS_CMD_GOOP;
+c.flags = SMS_CMD_STICKY;
+c.i[0] = SMS_GOOP_TINT, c.i[1] = 1, c.i[2] = (int32_t)0x2F6BFFFF; /* tint 1: blue */
+api->net->send(SMS_NET_ALL, &c);
+c.i[1] = 2, c.i[2] = (int32_t)0xE0302AFF;                         /* tint 2: red */
+api->net->send(SMS_NET_ALL, &c);
+c.flags = 0;
+c.i[0] = SMS_GOOP_PAINT, c.i[1] = 2;
+c.f[0] = 0, c.f[1] = 0, c.f[2] = 3000, c.f[3] = 900;               /* red first, the wider */
+api->net->send(SMS_NET_ALL, &c);
+c.i[1] = 1, c.f[3] = 600;                                          /* then blue over its middle */
+api->net->send(SMS_NET_ALL, &c);
+```
+
+In Lua: `sms.net.send("all", { type = "goop", what = "tint", tint = 1, color = 0x2F6BFFFF, sticky = true })`, then `sms.net.send("all", { type = "goop", what = "paint", tint = 1, position = { x = 0, y = 0, z = 3000 }, radius = 600 })`.
 
 ### Patterns
 
