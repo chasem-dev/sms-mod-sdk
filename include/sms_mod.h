@@ -28,7 +28,7 @@
  * checks a function is there with SMS_API_HAS before calling it. A new major
  * version is an incompatible change; the game refuses mods of another major.
  *
- * Pre-releases: v1.6.0-beta.1, -beta.2, ... lead to v1.6.0. A beta has the
+ * Pre-releases: v1.7.0-beta.1, -beta.2, ... lead to v1.7.0. A beta has the
  * next minor version and SMS_MOD_API_PRERELEASE its number; what a beta added
  * may still change before the release, so a mod built against one is rebuilt
  * against the release (the game warns of a mod built against another beta).
@@ -42,7 +42,7 @@
 #define SMS_MOD_API_MAJOR 1
 #define SMS_MOD_API_MINOR 6
 /* 0 in a release; N in the pre-release vMAJOR.MINOR.0-beta.N (API 1.5) */
-#define SMS_MOD_API_PRERELEASE 3
+#define SMS_MOD_API_PRERELEASE 0
 #define SMS_MOD_API_VERSION ((uint32_t)SMS_MOD_API_MAJOR << 16 | SMS_MOD_API_MINOR)
 
 #if defined(_WIN32)
@@ -1498,7 +1498,7 @@ typedef enum SmsCmdType {
 	   edge glides there from where it was (a closing arena). f[3] 0: none.
 	   Kept per session as sticky commands are, when sent sticky. */
 	SMS_CMD_BOUNDS = 26,
-	/* API 1.6 (beta 3). The stage's goop, the paint FLUDD cleans: i[0]
+	/* API 1.6. The stage's goop, the paint FLUDD cleans: i[0]
 	   SMS_GOOP_*. PAINT: goop over a disc of radius f[3] about f[0..2], in
 	   tint i[1] (0 to SMS_GOOP_TINTS - 1; 0 the stage's own goop), on every
 	   goop surface the stage has under it (seen from above; from the front
@@ -1586,7 +1586,7 @@ typedef enum SmsCmdType {
    water, which the server gives), fruit and 1-ups, or a barrel's hip drop. */
 #define SMS_RULE_NO_REFILL 32u
 
-/* SMS_CMD_GOOP's i[0] (API 1.6 beta 3) */
+/* SMS_CMD_GOOP's i[0] (API 1.6) */
 #define SMS_GOOP_PAINT 0 /* goop over the disc, in tint i[1] */
 #define SMS_GOOP_CLEAN 1 /* the disc cleaned */
 #define SMS_GOOP_TINT  2 /* tint i[1] in colour i[2] (0xRRGGBBAA; 0 the goop's own) */

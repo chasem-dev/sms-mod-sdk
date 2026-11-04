@@ -2159,7 +2159,7 @@ static int n_send(lua_State* L)
 		c.f[3]  = fieldnum(L, 2, "radius", 0);
 		c.f2[0] = fieldnum(L, 2, "seconds", 0);
 		break;
-	case SMS_CMD_GOOP: /* (1.6 beta 3) */
+	case SMS_CMD_GOOP: /* (1.6) */
 		c.i[0] = fieldchoice(L, 2, "what", kGoop, 3, SMS_GOOP_PAINT);
 		c.i[1] = (int32_t)fieldint(L, 2, "tint", 0);
 		c.i[2] = (int32_t)fieldint(L, 2, "color", 0);

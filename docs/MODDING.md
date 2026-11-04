@@ -108,7 +108,7 @@ The game never builds this crate itself; this outline has not been run against a
    include(FetchContent)
    FetchContent_Declare(sms_mod_sdk
      GIT_REPOSITORY https://github.com/chasem-dev/sms-mod-sdk.git
-     GIT_TAG v1.5.0)
+     GIT_TAG v1.6.0)
    FetchContent_MakeAvailable(sms_mod_sdk)
    sms_add_mod(mod src/my_mod.c)
    ```
@@ -937,7 +937,7 @@ Mods load once multiplayer has started, so `net->role()` is right while they loa
 | `SMS_CMD_RUMBLE` (1.4) | `i[0]` 1 hard, 0 weak, `i[1]` times | `hard`, `times` | the player's controller rumbles (as their own rumble setting allows) |
 | `SMS_CMD_BOUNDS` (1.5) | `f[0..2]` the middle, `f[3]` the radius (0: none), `i[0]` `SMS_BOUNDS_RING`, `i[1]` its colour, `f2[0]` seconds to glide there | `position`, `radius`, `ring`, `color`, `seconds` | an arena's edge: the player is kept within the radius of the middle, across the ground, pushed back in as they reach it (riders too); with a ring, a solid line marks it on the ground and the water. With seconds, the edge glides from where it was to the new radius, the same in every game |
 | `SMS_CMD_SPLASH` (1.5) | `i[0]` the player splashed, `i[1]` their meter, `i[2]` its full (0: no meter), `i[3]` `SMS_SPLASH_DOWN`, `SMS_SPLASH_QUIET`, `f[0..2]` where the water hit, `f[3]` how long they are flushed, seconds (0: 0.8) | `slot`, `meter`, `full`, `down`, `quiet`, `position`, `flush` | that player splashed as Shadow Mario is ([Water fights](#water-fights)); send it to everyone, each game shows it on its copy of them |
-| `SMS_CMD_GOOP` (1.6 beta 3) | `i[0]` `SMS_GOOP_PAINT` / `CLEAN` / `TINT`; PAINT and CLEAN: `f[0..2]` the middle, `f[3]` the radius, `i[1]` the tint (PAINT), `i[3]` `SMS_GOOP_AT_HEIGHT`; TINT: `i[1]` the tint, `i[2]` its colour | `what` (`"paint"`, `"clean"`, `"tint"`), `position`, `radius`, `tint`, `at_height`, `color` | the stage's goop ([below](#goop)): painted over a disc in one of the session's tints, cleaned off one, or a tint drawn in a colour |
+| `SMS_CMD_GOOP` (1.6) | `i[0]` `SMS_GOOP_PAINT` / `CLEAN` / `TINT`; PAINT and CLEAN: `f[0..2]` the middle, `f[3]` the radius, `i[1]` the tint (PAINT), `i[3]` `SMS_GOOP_AT_HEIGHT`; TINT: `i[1]` the tint, `i[2]` its colour | `what` (`"paint"`, `"clean"`, `"tint"`), `position`, `radius`, `tint`, `at_height`, `color` | the stage's goop ([below](#goop)): painted over a disc in one of the session's tints, cleaned off one, or a tint drawn in a colour |
 
 Every command also takes:
 
@@ -1072,14 +1072,14 @@ end)
 
 ### Goop
 
-(API 1.6 beta 3.) `SMS_CMD_GOOP` paints the stage's goop, cleans it, and colours it: a goop arena, a trail behind a player, each team's goop in its colour.
+(API 1.6.) `SMS_CMD_GOOP` paints the stage's goop, cleans it, and colours it: a goop arena, a trail behind a player, each team's goop in its colour.
 
 - **Where there can be goop.** A stage has goop only on its goop surfaces: the stretches of ground (and in Noki Bay walls) its own goop can cover, with what kind of goop it is there (sticky, burning, electric, sinking). Delfino Plaza, the Airstrip, Bianco Hills, Ricco Harbor, Pianta Village, Noki Bay and Sirena Beach have them in some of their episodes; most other stages and the secret courses have none, and a paint there does nothing (`SMS_MULTIPLAYER_DEBUG=1` has the game's log say how many surfaces each paint reached). Painted goop is the stage's own: it hurts, burns or holds Mario as the stage's goop there does, FLUDD cleans it, and it counts towards what the stage's events ask cleaned.
 - **`SMS_GOOP_PAINT`** covers a disc of radius `f[3]` about `f[0..2]` with goop, with the game's own soft-edged stamp, in tint `i[1]`. It covers every surface under the disc, seen from above (from the front, for a wall), whatever its height: a disc over a slope or a cliff paints both. With `SMS_GOOP_AT_HEIGHT` in `i[3]`, only the surface within about 64 units of `f[1]`, as the game's own goop and FLUDD's water go (a bridge over painted ground stays clean). Paint over goop already there turns it to the new tint. A big area is one big disc, or several.
 - **`SMS_GOOP_CLEAN`** cleans the disc at once, as FLUDD would (the place back to tint 0, so goop the stage grows back there is its own colour again).
 - **Tints.** Each paint is in one of `SMS_GOOP_TINTS` tints (0 to 63), and each tint has a colour: `SMS_GOOP_TINT` with `i[1]` the tint and `i[2]` its colour, `0xRRGGBBAA`, the alpha how strongly (`FF` wholly that colour, `80` halfway, 0 the goop's own). The goop keeps its shading (its edges, gloss and the light on it): the colour is how a typical spot of it looks. Tint 0 is the stage's own goop, and what is painted in tint 0; give it a colour and the stage's goop changes with it. A tint's colour can change at any time, and all goop painted in it changes at once: paint each layer of goop in its own tint, then colour them as the game goes.
 - **Everyone's goop.** The goop is the session's, as its cleaning is: `PAINT` and `CLEAN` go to every player whatever `to` says, carried out at once (`delay_ms` is not used) and in the order they were sent among the players' own cleaning, so a newcomer's game, or one loading the stage again after a lost life, has the same goop. They are not sticky (`SMS_CMD_STICKY` is ignored; the session keeps them already). `TINT` is per player (two teams can see each other's goop in different colours) and should be sent sticky, so a player arriving later sees the colours too; sticky tints replace each other per tint.
-- Games older than 1.6 beta 3 leave all of it out: ask for `client_api = 1.6` (or check `api_version`) when the game mode needs it.
+- Games older than 1.6 leave all of it out: ask for `client_api = 1.6` (or check `api_version`) when the game mode needs it.
 
 ```c
 /* a pool of blue goop and a ring of red around it, in the plaza */
@@ -1245,22 +1245,22 @@ Bits: `0x800` airborne, `0x2000` swimming, `0x400` running; `status & 0x1C0` is 
 ## Compatibility
 
 - The game loads a mod whose `sms_mod_api_version()` has the game's **major** version; another major is refused with a message.
-- The current version is **1.5** (1.1 added `core->mod_info` and `core->host_runtime`, for script mods; 1.2 added `api->net`, the `SMS_EV_NET_*` events and `game->in_cube`, for [server mods](#server-mods); 1.3 added players' versions and `client_api`, for [versions](#versions); 1.4 added the stage's objects one at a time, spawning, players, rules and the HUD for server mods, the stage's objects and ground for any mod, and `api->world`, `SmsEvStage.reason` and `SMS_EV_STAGE_START`, for [worlds and episodes](#world); 1.5 added FLUDD's nozzles and Mario's outfit, [events for every kind of mod](#events-for-every-kind-of-mod-15), a mod's own [files](#files), water fights and arenas for server mods, and Mario's facing, aim and hidden parts for first-person cameras).
+- The current version is **1.6** (1.1 added `core->mod_info` and `core->host_runtime`, for script mods; 1.2 added `api->net`, the `SMS_EV_NET_*` events and `game->in_cube`, for [server mods](#server-mods); 1.3 added players' versions and `client_api`, for [versions](#versions); 1.4 added the stage's objects one at a time, spawning, players, rules and the HUD for server mods, the stage's objects and ground for any mod, and `api->world`, `SmsEvStage.reason` and `SMS_EV_STAGE_START`, for [worlds and episodes](#world); 1.5 added FLUDD's nozzles and Mario's outfit, [events for every kind of mod](#events-for-every-kind-of-mod-15), a mod's own [files](#files), water fights and arenas for server mods, and Mario's facing, aim and hidden parts for first-person cameras; 1.6 added `SMS_EV_FILE_MENU`, `SMS_EV_EPISODE_SELECT` and `SMS_EV_SHINE_TOUCH`, `SMS_LEAVE_STATE_LOAD` and the port's warps as `SMS_LEAVE_WARP`, and `SMS_CMD_GOOP` for server mods).
 - **Minor versions only add**: events, functions at the ends of tables, fields at the ends of structs. A mod built for an older minor runs on a newer game unchanged. A mod built for a newer minor runs on an older game if it checks what it uses with `SMS_API_HAS` and `ev->size` (the game logs a note when a mod is newer than it).
 - Nothing in the API depends on the game's internal layout, so game updates (and the decomp's progress) do not break mods. `api->native` is the exception, by design.
 
 ## Pre-releases
 
-The next minor version comes out first as betas: `v1.6.0-beta.1`, `v1.6.0-beta.2`, ..., then `v1.6.0`. They are on the [releases page](https://github.com/chasem-dev/sms-mod-sdk/releases) marked *Pre-release* (with the lua mod's zip), and in the [changelog](../CHANGELOG.md) under the release they lead to. A beta is for trying what is new while it is made: what a beta added may still change (be renamed, take other arguments, or go) in a later beta, and is settled only in the release. What came out in a release never changes.
+The next minor version comes out first as betas: `v1.7.0-beta.1`, `v1.7.0-beta.2`, ..., then `v1.7.0`. They are on the [releases page](https://github.com/chasem-dev/sms-mod-sdk/releases) marked *Pre-release* (with the lua mod's zip), and in the [changelog](../CHANGELOG.md) under the release they lead to. A beta is for trying what is new while it is made: what a beta added may still change (be renamed, take other arguments, or go) in a later beta, and is settled only in the release. What came out in a release never changes.
 
 To build a mod against a beta:
 
-1. **Name the beta's tag** where the SDK comes from: `GIT_TAG v1.6.0-beta.1` in your `FetchContent_Declare` (the templates have it in `CMakeLists.txt`), or `git checkout v1.6.0-beta.1` in a checkout of the SDK, then configure and build as always (CMake fetches the new tag; delete `build/` if it keeps the old one).
-2. **Run it in a game built with that beta.** The PC port's beta builds (SMS Launcher's beta channel, or a source build of the port's `main`) carry the SDK's latest beta once the port moves to it; the game's log says which: `[mods] API 1.6 beta 1: ...`. A release build of the game has the last release (1.5) and does not have what the beta adds; check with `SMS_API_HAS` and `ev->size` as for any newer minor, and the mod still loads there.
-3. **Lua script mods** need the lua mod of the same beta (`sms-lua-mod-1.6.0-beta.1.zip` from the beta's release, unzipped into the game's `mods/`), or, in a source build of the port, `python3 tools/mods/get.py lua` once the port pins it.
-4. **When the release is out, rebuild** against it (`GIT_TAG v1.6.0`) and fix what changed since your beta (the changelog says). Share a mod built against a beta only with others testing the same beta.
+1. **Name the beta's tag** where the SDK comes from: `GIT_TAG v1.7.0-beta.1` in your `FetchContent_Declare` (the templates have it in `CMakeLists.txt`), or `git checkout v1.7.0-beta.1` in a checkout of the SDK, then configure and build as always (CMake fetches the new tag; delete `build/` if it keeps the old one).
+2. **Run it in a game built with that beta.** The PC port's beta builds (SMS Launcher's beta channel, or a source build of the port's `main`) carry the SDK's latest beta once the port moves to it; the game's log says which: `[mods] API 1.7 beta 1: ...`. A release build of the game has the last release (1.6) and does not have what the beta adds; check with `SMS_API_HAS` and `ev->size` as for any newer minor, and the mod still loads there.
+3. **Lua script mods** need the lua mod of the same beta (`sms-lua-mod-1.7.0-beta.1.zip` from the beta's release, unzipped into the game's `mods/`), or, in a source build of the port, `python3 tools/mods/get.py lua` once the port pins it.
+4. **When the release is out, rebuild** against it (`GIT_TAG v1.7.0`) and fix what changed since your beta (the changelog says). Share a mod built against a beta only with others testing the same beta.
 
-`SMS_MOD_API_PRERELEASE` is the beta's number (0 in a release); `SMS_MOD_DEFINE` exports it as `sms_mod_api_prerelease`, and the game's own is `api->prerelease` (1.5; check `api->size`). The game logs a warning when a mod was built against a beta other than the game's (or against a beta of the game's release): `made for mod API 1.6 beta 1 (what a beta adds may change before its release); this game has 1.6 beta 3: rebuild it`. It still loads it.
+`SMS_MOD_API_PRERELEASE` is the beta's number (0 in a release); `SMS_MOD_DEFINE` exports it as `sms_mod_api_prerelease`, and the game's own is `api->prerelease` (1.5; check `api->size`). The game logs a warning when a mod was built against a beta other than the game's (or against a beta of the game's release): `made for mod API 1.7 beta 1 (what a beta adds may change before its release); this game has 1.7 beta 3: rebuild it`. It still loads it.
 
 ## Design notes
 
