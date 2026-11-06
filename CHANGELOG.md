@@ -4,7 +4,7 @@ A release's tag is the API version (`v1.1.0` is API 1.1). Within a major version
 
 Pre-releases (`v1.5.0-beta.1`, `-beta.2`, ...) lead to a release and are listed under it, newest first, until it comes out. What a beta added may still change before the release; see [Pre-releases](docs/MODDING.md#pre-releases).
 
-## Unreleased
+## 1.7.0
 
 FLUDD held in view and FLUDD's spray weapons, for first-person and weapons mods (Allebale's First Person and FLUDD Weapons).
 
