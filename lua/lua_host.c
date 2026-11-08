@@ -287,7 +287,7 @@ static const char* const kPauses[] = {"menu", "map", "save"};
 static const char* const kTimers[] = {"started", "stopped", "out"};
 static const char* const kFileMenu[] = {"start", "copy", "erase", "score"};
 static const char* const kShineTakes[] = {"get", "quiet"};
-static const char* const kGameModels[] = {"none", "shine", "coin", "red_coin", "blue_coin"};
+static const char* const kGameModels[] = {"none", "coin", "red_coin", "blue_coin"};
 static const char* pick(const char* const* names, int n, int i) { return i >= 0 && i < n ? names[i] : "other"; }
 static const char* savePromptName(int k)
 {
@@ -799,7 +799,7 @@ static void pushEvent(lua_State* L, const SmsEvent* ev)
 		setvec(L, "position", &p->position);
 		setstr(L, "model", p->model);
 		if (p->game_model > 0)
-			setstr(L, "game_model", pick(kGameModels, 5, p->game_model));
+			setstr(L, "game_model", pick(kGameModels, 4, p->game_model));
 		break;
 	}
 	default:
@@ -927,7 +927,7 @@ static void readEvent(lua_State* L, int t, SmsEvent* ev, Script* s)
 		lua_getfield(L, t, "game_model");
 		if (lua_type(L, -1) == LUA_TSTRING) {
 			const char* m = lua_tostring(L, -1);
-			for (int i = 0; i < 5; i++)
+			for (int i = 0; i < 4; i++)
 				if (!strcmp(m, kGameModels[i]))
 					p->game_model = i;
 		} else if (lua_isboolean(L, -1) && !lua_toboolean(L, -1)) {

@@ -368,8 +368,8 @@ typedef enum SmsEventType {
 	SMS_EV_SHINE_TOUCH = 70,
 	/* (API 1.8) A coin is made, as its stage loads (a red or blue coin, one
 	   an enemy or a box will drop): its model may be one of the mod's or
-	   another of the game's (`model`, `game_model`), and the mod learns
-	   which object a blue coin is (`id`). SmsEvItemSetup. */
+	   another coin's (`model`, `game_model`), and the mod learns which
+	   object a blue coin is (`id`). SmsEvItemSetup. */
 	SMS_EV_ITEM_SETUP = 71,
 
 	/* core->event_id hands out ids from here for mods' own events. */
@@ -409,8 +409,10 @@ typedef void (*SmsScriptStopFn)(SmsMod* host, SmsMod* script, void* user);
 
 typedef enum SmsGameMode {
 	SMS_MODE_BOOT = 0,     /* starting, logos */
-	SMS_MODE_TITLE = 1,    /* title screen */
-	SMS_MODE_MENU = 2,     /* file select and other menus */
+	SMS_MODE_TITLE = 1,    /* a world's episode select (named so before API 1.8:
+	                          the title screen and the file select are the
+	                          title stage, area 15, in SMS_MODE_STAGE) */
+	SMS_MODE_MENU = 2,     /* the game's menu director (not the file select) */
 	SMS_MODE_STAGE = 3,    /* a stage is being played */
 	SMS_MODE_MOVIE = 4,    /* a full-screen movie */
 	SMS_MODE_OTHER = 5
@@ -802,13 +804,12 @@ typedef struct SmsEvShineSetup {
 	const char* model;
 } SmsEvShineSetup;
 
-/* SmsEvItemSetup.game_model (API 1.8): one of the game's own models, from
-   the stage's files. A stage that lacks the file leaves the item's own. */
-#define SMS_GAME_MODEL_NONE      0 /* the item's own (or `model`) */
-#define SMS_GAME_MODEL_SHINE     1 /* a Shine */
-#define SMS_GAME_MODEL_COIN      2
-#define SMS_GAME_MODEL_RED_COIN  3
-#define SMS_GAME_MODEL_BLUE_COIN 4
+/* SmsEvItemSetup.game_model (API 1.8): another coin's model, from the
+   stage's files. A stage that lacks the file leaves the coin's own. */
+#define SMS_GAME_MODEL_NONE      0 /* the coin's own (or `model`) */
+#define SMS_GAME_MODEL_COIN      1
+#define SMS_GAME_MODEL_RED_COIN  2
+#define SMS_GAME_MODEL_BLUE_COIN 3
 
 /* SMS_EV_ITEM_SETUP (API 1.8) */
 typedef struct SmsEvItemSetup {
@@ -820,18 +821,20 @@ typedef struct SmsEvItemSetup {
 	                        world's other areas share the numbers), else -1 */
 	uint32_t flag;       /* a blue coin's save-file flag (1 once collected;
 	                        docs/MODDING.md, Flags), else 0 */
-	SmsVec3 position;    /* where the stage places it */
+	SmsVec3 position;    /* where the stage places it; 0, 0, 0 for one a
+	                        container (a box, goop, an enemy) holds: it is
+	                        placed as it appears */
 	/* The model it takes: NULL, the game's. Set it to a model file (.bmd)
 	   of the mod's: a path relative to the mod's folder (core->mod_dir), or
 	   a full one; a model that cannot be loaded leaves the game's. Coins
-	   play no animation of their own (the game turns them), so any model
-	   will do. Several items may name the same file: it is loaded once a
-	   stage. */
+	   play no animation of their own (the game turns them), so a model
+	   that shows without one will do (a 1-up mushroom's does; the game's
+	   Shine model does not show on a coin). Several items may name the
+	   same file: it is loaded once a stage. */
 	const char* model;
-	/* Or one of the game's own models (SMS_GAME_MODEL_*), so a mod need
-	   not carry the game's files: SMS_GAME_MODEL_SHINE gives a blue coin
-	   that holds a Shine a Shine's look. `model` comes first when both are
-	   set. Changeable. */
+	/* Or another coin's model (SMS_GAME_MODEL_*), so a mod need not carry
+	   the game's files: a blue coin that holds something drawn as a red
+	   coin, say. `model` comes first when both are set. Changeable. */
 	int game_model;
 } SmsEvItemSetup;
 
