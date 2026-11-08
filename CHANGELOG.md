@@ -4,6 +4,16 @@ A release's tag is the API version (`v1.1.0` is API 1.1). Within a major version
 
 Pre-releases (`v1.5.0-beta.1`, `-beta.2`, ...) lead to a release and are listed under it, newest first, until it comes out. What a beta added may still change before the release; see [Pre-releases](docs/MODDING.md#pre-releases).
 
+## 1.8.0 (in beta)
+
+### 1.8.0-beta.1
+
+- `SmsGameState.select_area`, `.select_episode` (check `size`): while a world's episode select is up, its world and the episode its cursor is on (the one chosen, once A is pressed); -1 at any other time. The select is game mode `SMS_MODE_TITLE`, and `SMS_EV_DRAW` comes over it, so a mod can show more of the episode under the cursor (where a mod that shuffles stages takes the player, say). In Lua, `sms.state()`'s `select_area` and `select_episode`.
+- `SMS_EV_ITEM_SETUP` (`SmsEvItemSetup`: `object`, `kind`, `actor_type`, `id`, `flag`, `position`, `model`, `game_model`): a coin, red coin or blue coin is made as its stage loads, hidden ones and those enemies and boxes drop too. A blue coin comes with its number in its world (`id`) and its save-file flag (`flag`), so a mod knows which object each blue coin is. `model` names a model file of the mod's for it, as `SMS_EV_SHINE_SETUP`'s does; `game_model` one of the game's own (`SMS_GAME_MODEL_SHINE`, `_COIN`, `_RED_COIN`, `_BLUE_COIN`), so a blue coin that holds a Shine may look like one without the mod carrying the game's files. In Lua, `item_setup` (`game_model` `"shine"`, `"coin"`, `"red_coin"`, `"blue_coin"`).
+- `game->object_set_tint(obj, colour)`: one object drawn in a colour, however many objects share its model (`object_set_color` changes the model, and so all of them): its shading kept, the alpha how far towards the colour, 0 off; until set again or the stage changes. In Lua, `sms.set_object_tint(obj, colour)`.
+- The manual's game modes: `SMS_MODE_TITLE` is a world's episode select, not the title screen.
+- The lua mod is version 1.8.0-beta.1.
+
 ## 1.7.0
 
 FLUDD held in view and FLUDD's spray weapons, for first-person and weapons mods (Allebale's First Person and FLUDD Weapons).

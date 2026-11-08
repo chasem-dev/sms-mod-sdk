@@ -40,9 +40,9 @@
 #include <stdint.h>
 
 #define SMS_MOD_API_MAJOR 1
-#define SMS_MOD_API_MINOR 7
+#define SMS_MOD_API_MINOR 8
 /* 0 in a release; N in the pre-release vMAJOR.MINOR.0-beta.N (API 1.5) */
-#define SMS_MOD_API_PRERELEASE 0
+#define SMS_MOD_API_PRERELEASE 1
 #define SMS_MOD_API_VERSION ((uint32_t)SMS_MOD_API_MAJOR << 16 | SMS_MOD_API_MINOR)
 
 #if defined(_WIN32)
@@ -366,6 +366,11 @@ typedef enum SmsEventType {
 	   Mario plays on. Cancellable: cancel and he leaves it where it is (this
 	   comes again each tick he touches it). SmsEvShineTouch. */
 	SMS_EV_SHINE_TOUCH = 70,
+	/* (API 1.8) A coin is made, as its stage loads (a red or blue coin, one
+	   an enemy or a box will drop): its model may be one of the mod's or
+	   another of the game's (`model`, `game_model`), and the mod learns
+	   which object a blue coin is (`id`). SmsEvItemSetup. */
+	SMS_EV_ITEM_SETUP = 71,
 
 	/* core->event_id hands out ids from here for mods' own events. */
 	SMS_EV_CUSTOM_BASE = 0x10000
@@ -797,6 +802,39 @@ typedef struct SmsEvShineSetup {
 	const char* model;
 } SmsEvShineSetup;
 
+/* SmsEvItemSetup.game_model (API 1.8): one of the game's own models, from
+   the stage's files. A stage that lacks the file leaves the item's own. */
+#define SMS_GAME_MODEL_NONE      0 /* the item's own (or `model`) */
+#define SMS_GAME_MODEL_SHINE     1 /* a Shine */
+#define SMS_GAME_MODEL_COIN      2
+#define SMS_GAME_MODEL_RED_COIN  3
+#define SMS_GAME_MODEL_BLUE_COIN 4
+
+/* SMS_EV_ITEM_SETUP (API 1.8) */
+typedef struct SmsEvItemSetup {
+	SmsObject object;    /* good until the stage changes: keep it to find the
+	                        item again (game->object_set_tint) */
+	int kind;            /* SmsItemKind: SMS_ITEM_COIN, _RED_COIN, _BLUE_COIN */
+	uint32_t actor_type; /* the game's actor type id */
+	int id;              /* a blue coin's number in its world (0..49; the
+	                        world's other areas share the numbers), else -1 */
+	uint32_t flag;       /* a blue coin's save-file flag (1 once collected;
+	                        docs/MODDING.md, Flags), else 0 */
+	SmsVec3 position;    /* where the stage places it */
+	/* The model it takes: NULL, the game's. Set it to a model file (.bmd)
+	   of the mod's: a path relative to the mod's folder (core->mod_dir), or
+	   a full one; a model that cannot be loaded leaves the game's. Coins
+	   play no animation of their own (the game turns them), so any model
+	   will do. Several items may name the same file: it is loaded once a
+	   stage. */
+	const char* model;
+	/* Or one of the game's own models (SMS_GAME_MODEL_*), so a mod need
+	   not carry the game's files: SMS_GAME_MODEL_SHINE gives a blue coin
+	   that holds a Shine a Shine's look. `model` comes first when both are
+	   set. Changeable. */
+	int game_model;
+} SmsEvItemSetup;
+
 /* SmsEvYoshiEgg.kind (API 1.5) */
 #define SMS_EGG_STAGE       0 /* an egg the stage places: there when the file has Yoshi's Shine (0x21; in the plaza, once Yoshi has hatched there: flag 0x1038F) */
 #define SMS_EGG_PLAZA_EVENT 1 /* the plaza's egg event is set up (its episode 8): when Yoshi has not hatched yet and the file has Yoshi's Shine */
@@ -987,6 +1025,10 @@ typedef struct SmsGameState {
 	int eclipse;          /* a Super Mario Eclipse build */
 	int save_file;        /* the chosen file 0..2, or -1 */
 	int paused;           /* the pause menu, map or a save screen is up (no ticks) */
+	/* API 1.8 (check size): a world's episode select, while it is up (mode
+	   SMS_MODE_TITLE): its world's area and the episode its cursor is on
+	   (0..7; the one chosen, once A is pressed); both -1 otherwise. */
+	int select_area, select_episode;
 } SmsGameState;
 
 /* API 1.4: game->object_info's */
@@ -1077,6 +1119,14 @@ typedef struct SmsGameApi {
 	   every object of the same model shares them (all the Shines given the
 	   same model file, say). 0 when the object has no model. */
 	int (*object_set_color)(SmsObject obj, int which, SmsColor color);
+	/* API 1.8: one object drawn in a colour (0xRRGGBBAA), however its model
+	   is shared: its shading kept (a mid-grey part takes the colour as it
+	   is, darker and lighter parts darker and lighter), the alpha how far
+	   towards it (0 off, 255 fully). Every part of its model, its
+	   reflections too; its particles are not. Kept until it is set again
+	   or the stage changes, whatever the model's colour animations do.
+	   0 when the object has no model. */
+	int (*object_set_tint)(SmsObject obj, SmsColor color);
 } SmsGameApi;
 
 /* game->object_set_color's `which` (API 1.5) */

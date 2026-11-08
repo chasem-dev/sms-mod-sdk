@@ -29,7 +29,7 @@ typedef struct Script {
 	lua_State* L;
 	int errors;
 	char reason[128]; /* a save state refusal's reason, kept for the game */
-	char model[512];  /* a Shine's model a handler named, as a full path, kept for the game */
+	char model[512];  /* a Shine's or an item's model a handler named, as a full path, kept for the game */
 	Ref* refs;
 	struct Script* next;
 } Script;
@@ -264,6 +264,7 @@ static const struct {
 	{"file_menu", SMS_EV_FILE_MENU},
 	{"episode_select", SMS_EV_EPISODE_SELECT},
 	{"shine_touch", SMS_EV_SHINE_TOUCH},
+	{"item_setup", SMS_EV_ITEM_SETUP},
 };
 
 static const char* const kLeaves[] = {"other",     "way_out", "shine", "exit_area", "life_lost",
@@ -286,6 +287,7 @@ static const char* const kPauses[] = {"menu", "map", "save"};
 static const char* const kTimers[] = {"started", "stopped", "out"};
 static const char* const kFileMenu[] = {"start", "copy", "erase", "score"};
 static const char* const kShineTakes[] = {"get", "quiet"};
+static const char* const kGameModels[] = {"none", "shine", "coin", "red_coin", "blue_coin"};
 static const char* pick(const char* const* names, int n, int i) { return i >= 0 && i < n ? names[i] : "other"; }
 static const char* savePromptName(int k)
 {
@@ -785,6 +787,21 @@ static void pushEvent(lua_State* L, const SmsEvent* ev)
 		setstr(L, "take", pick(kShineTakes, 2, p->take));
 		break;
 	}
+	case SMS_EV_ITEM_SETUP: {
+		const SmsEvItemSetup* p = (const SmsEvItemSetup*)d;
+		setobj(L, "object", p->object);
+		setstr(L, "kind", itemKind(p->kind));
+		setint(L, "actor_type", p->actor_type);
+		if (p->id >= 0) {
+			setint(L, "id", p->id);
+			setint(L, "flag", p->flag);
+		}
+		setvec(L, "position", &p->position);
+		setstr(L, "model", p->model);
+		if (p->game_model > 0)
+			setstr(L, "game_model", pick(kGameModels, 5, p->game_model));
+		break;
+	}
 	default:
 		/* a custom event: its payload as a string of bytes (string.unpack reads structs) */
 		if (ev->type >= SMS_EV_CUSTOM_BASE && ev->size) {
@@ -793,6 +810,24 @@ static void pushEvent(lua_State* L, const SmsEvent* ev)
 		}
 		break;
 	}
+}
+
+/* A model a handler named (a Shine's, an item's): a string relative to the
+   script mod's own folder, or false for the game's. */
+static void pullModel(lua_State* L, int t, Script* s, const char** model)
+{
+	lua_getfield(L, t, "model");
+	if (lua_type(L, -1) == LUA_TSTRING) {
+		const char* m = lua_tostring(L, -1);
+		if (!*model || strcmp(m, *model)) {
+			const int full = m[0] == '/' || m[0] == '\\' || (m[0] && m[1] == ':');
+			snprintf(s->model, sizeof s->model, "%s%s%s", full ? "" : api->core->mod_dir(s->mod), full ? "" : "/", m);
+			*model = s->model;
+		}
+	} else if (lua_isboolean(L, -1) && !lua_toboolean(L, -1)) {
+		*model = NULL;
+	}
+	lua_pop(L, 1);
 }
 
 /* What a handler may change, from the table back into the payload. */
@@ -883,17 +918,20 @@ static void readEvent(lua_State* L, int t, SmsEvent* ev, Script* s)
 	}
 	case SMS_EV_SHINE_SETUP: {
 		SmsEvShineSetup* p = (SmsEvShineSetup*)d;
-		lua_getfield(L, t, "model");
+		pullModel(L, t, s, &p->model);
+		break;
+	}
+	case SMS_EV_ITEM_SETUP: {
+		SmsEvItemSetup* p = (SmsEvItemSetup*)d;
+		pullModel(L, t, s, &p->model);
+		lua_getfield(L, t, "game_model");
 		if (lua_type(L, -1) == LUA_TSTRING) {
 			const char* m = lua_tostring(L, -1);
-			if (!p->model || strcmp(m, p->model)) {
-				/* relative to the script mod's own folder */
-				const int full = m[0] == '/' || m[0] == '\\' || (m[0] && m[1] == ':');
-				snprintf(s->model, sizeof s->model, "%s%s%s", full ? "" : api->core->mod_dir(s->mod), full ? "" : "/", m);
-				p->model = s->model;
-			}
+			for (int i = 0; i < 5; i++)
+				if (!strcmp(m, kGameModels[i]))
+					p->game_model = i;
 		} else if (lua_isboolean(L, -1) && !lua_toboolean(L, -1)) {
-			p->model = NULL; /* false: the game's */
+			p->game_model = SMS_GAME_MODEL_NONE;
 		}
 		lua_pop(L, 1);
 		break;
@@ -1146,6 +1184,16 @@ static int l_set_object_color(lua_State* L)
 	return 1;
 }
 
+/* sms.set_object_tint(obj, color) -> whether it has a model; color
+   0xRRGGBBAA, 0 off (API 1.8). */
+static int l_set_object_tint(lua_State* L)
+{
+	SmsObject o      = (SmsObject)lua_touserdata(L, 1);
+	const SmsColor c = (SmsColor)(lua_Unsigned)luaL_optinteger(L, 2, 0);
+	lua_pushboolean(L, SMS_API_HAS(api->game, object_set_tint) && o && api->game->object_set_tint(o, c));
+	return 1;
+}
+
 static int l_info(lua_State* L)
 {
 	const char* v = api->core->mod_info(MOD(L), luaL_checkstring(L, 1));
@@ -1164,7 +1212,7 @@ static int l_state(lua_State* L)
 	memset(&st, 0, sizeof st);
 	st.size = sizeof st;
 	api->game->state(&st);
-	lua_createtable(L, 0, 11);
+	lua_createtable(L, 0, 13);
 	setstr(L, "mode", modeName(st.mode));
 	setbool(L, "stage_ready", st.stage_ready);
 	if (st.stage_ready) {
@@ -1177,6 +1225,10 @@ static int l_state(lua_State* L)
 	setbool(L, "eclipse", st.eclipse);
 	setint(L, "save_file", st.save_file);
 	setbool(L, "paused", st.paused);
+	if (st.size >= offsetof(SmsGameState, select_episode) + sizeof st.select_episode && st.select_area >= 0) {
+		setint(L, "select_area", st.select_area);
+		setint(L, "select_episode", st.select_episode);
+	}
 	return 1;
 }
 
@@ -2421,7 +2473,7 @@ static const luaL_Reg kSms[] = {
 	{"object_count", l_object_count}, {"object_info", l_object_info}, {"ground", l_ground},
 	{"object_type", l_object_type}, {"object_health", l_object_health},
 	{"files_read", l_files_read}, {"files_write", l_files_write}, {"files_remove", l_files_remove},
-	{"files_dir", l_files_dir}, {"set_object_color", l_set_object_color},
+	{"files_dir", l_files_dir}, {"set_object_color", l_set_object_color}, {"set_object_tint", l_set_object_tint},
 	{NULL, NULL},
 };
 
