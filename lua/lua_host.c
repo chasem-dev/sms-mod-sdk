@@ -287,7 +287,7 @@ static const char* const kPauses[] = {"menu", "map", "save"};
 static const char* const kTimers[] = {"started", "stopped", "out"};
 static const char* const kFileMenu[] = {"start", "copy", "erase", "score"};
 static const char* const kShineTakes[] = {"get", "quiet"};
-static const char* const kGameModels[] = {"none", "coin", "red_coin", "blue_coin"};
+static const char* const kGameModels[] = {"none", "coin", "red_coin", "blue_coin", "shine"};
 static const char* pick(const char* const* names, int n, int i) { return i >= 0 && i < n ? names[i] : "other"; }
 static const char* savePromptName(int k)
 {
@@ -799,7 +799,7 @@ static void pushEvent(lua_State* L, const SmsEvent* ev)
 		setvec(L, "position", &p->position);
 		setstr(L, "model", p->model);
 		if (p->game_model > 0)
-			setstr(L, "game_model", pick(kGameModels, 4, p->game_model));
+			setstr(L, "game_model", pick(kGameModels, 5, p->game_model));
 		break;
 	}
 	default:
@@ -927,7 +927,7 @@ static void readEvent(lua_State* L, int t, SmsEvent* ev, Script* s)
 		lua_getfield(L, t, "game_model");
 		if (lua_type(L, -1) == LUA_TSTRING) {
 			const char* m = lua_tostring(L, -1);
-			for (int i = 0; i < 4; i++)
+			for (int i = 0; i < 5; i++)
 				if (!strcmp(m, kGameModels[i]))
 					p->game_model = i;
 		} else if (lua_isboolean(L, -1) && !lua_toboolean(L, -1)) {
@@ -1191,6 +1191,17 @@ static int l_set_object_tint(lua_State* L)
 	SmsObject o      = (SmsObject)lua_touserdata(L, 1);
 	const SmsColor c = (SmsColor)(lua_Unsigned)luaL_optinteger(L, 2, 0);
 	lua_pushboolean(L, SMS_API_HAS(api->game, object_set_tint) && o && api->game->object_set_tint(o, c));
+	return 1;
+}
+
+/* sms.object_particle(obj, id, joint) -> whether played or kept; joint
+   -1 (or nil) the object's position (API 1.8 beta 3). */
+static int l_object_particle(lua_State* L)
+{
+	SmsObject o     = (SmsObject)lua_touserdata(L, 1);
+	const uint32_t id = (uint32_t)luaL_checkinteger(L, 2);
+	const int joint = (int)luaL_optinteger(L, 3, -1);
+	lua_pushboolean(L, SMS_API_HAS(api->game, object_particle) && o && api->game->object_particle(o, id, joint));
 	return 1;
 }
 
@@ -2474,6 +2485,7 @@ static const luaL_Reg kSms[] = {
 	{"object_type", l_object_type}, {"object_health", l_object_health},
 	{"files_read", l_files_read}, {"files_write", l_files_write}, {"files_remove", l_files_remove},
 	{"files_dir", l_files_dir}, {"set_object_color", l_set_object_color}, {"set_object_tint", l_set_object_tint},
+	{"object_particle", l_object_particle},
 	{NULL, NULL},
 };
 

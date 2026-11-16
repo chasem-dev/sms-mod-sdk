@@ -42,7 +42,7 @@
 #define SMS_MOD_API_MAJOR 1
 #define SMS_MOD_API_MINOR 8
 /* 0 in a release; N in the pre-release vMAJOR.MINOR.0-beta.N (API 1.5) */
-#define SMS_MOD_API_PRERELEASE 1
+#define SMS_MOD_API_PRERELEASE 3
 #define SMS_MOD_API_VERSION ((uint32_t)SMS_MOD_API_MAJOR << 16 | SMS_MOD_API_MINOR)
 
 #if defined(_WIN32)
@@ -140,7 +140,9 @@ typedef enum SmsEventType {
 	   changed (scripted play, input remapping). SmsEvPadRead. */
 	SMS_EV_PAD_READ = 12,
 	/* A key went down or up in the game's window. Consumable: consume it and
-	   neither later mods nor the game's controls see it. SmsEvKey. */
+	   neither later mods nor the game's controls see it (a key let go still
+	   reaches the game's controls, API 1.8 beta 3, so none is left held there).
+	   SmsEvKey. */
 	SMS_EV_KEY = 13,
 	/* A camera cutscene was asked for. SmsEvCutscene. */
 	SMS_EV_CUTSCENE = 14,
@@ -847,12 +849,14 @@ typedef struct SmsEvShineSetup {
 	const char* model;
 } SmsEvShineSetup;
 
-/* SmsEvItemSetup.game_model (API 1.8): another coin's model, from the
-   stage's files. A stage that lacks the file leaves the coin's own. */
+/* SmsEvItemSetup.game_model (API 1.8): another coin's model, or (beta 3) a
+   Shine's, from the stage's files. A stage that lacks the file leaves the
+   coin's own. */
 #define SMS_GAME_MODEL_NONE      0 /* the coin's own (or `model`) */
 #define SMS_GAME_MODEL_COIN      1
 #define SMS_GAME_MODEL_RED_COIN  2
 #define SMS_GAME_MODEL_BLUE_COIN 3
+#define SMS_GAME_MODEL_SHINE     4 /* (API 1.8 beta 3) the Shine's; its effects: game->object_particle */
 
 /* SMS_EV_ITEM_SETUP (API 1.8) */
 typedef struct SmsEvItemSetup {
@@ -871,13 +875,15 @@ typedef struct SmsEvItemSetup {
 	   of the mod's: a path relative to the mod's folder (core->mod_dir), or
 	   a full one; a model that cannot be loaded leaves the game's. Coins
 	   play no animation of their own (the game turns them), so a model
-	   that shows without one will do (a 1-up mushroom's does; the game's
-	   Shine model does not show on a coin). Several items may name the
-	   same file: it is loaded once a stage. */
+	   that shows without one will do (a 1-up mushroom's, a Shine's). Its
+	   joints are placed as the model's file has them (from API 1.8 beta 3;
+	   before, only the first, so only a one-joint model showed whole), and
+	   game->object_particle puts effects on them. Several items may name
+	   the same file: it is loaded once a stage. */
 	const char* model;
-	/* Or another coin's model (SMS_GAME_MODEL_*), so a mod need not carry
-	   the game's files: a blue coin that holds something drawn as a red
-	   coin, say. `model` comes first when both are set. Changeable. */
+	/* Or another coin's model, or a Shine's (SMS_GAME_MODEL_*), so a mod
+	   need not carry the game's files: a blue coin that holds something
+	   drawn as a red coin, say. `model` comes first when both are set. Changeable. */
 	int game_model;
 } SmsEvItemSetup;
 
@@ -1163,7 +1169,8 @@ typedef struct SmsGameApi {
 	   make of that colour; a model's own colour animation sets it again as
 	   it plays (set it every tick to keep it). The colours are the model's:
 	   every object of the same model shares them (all the Shines given the
-	   same model file, say). 0 when the object has no model. */
+	   same model file, say). 0 when the object has no model (yet: a coin
+	   at SMS_EV_ITEM_SETUP; it crashed the game before API 1.8 beta 3). */
 	int (*object_set_color)(SmsObject obj, int which, SmsColor color);
 	/* API 1.8: one object drawn in a colour (0xRRGGBBAA), however its model
 	   is shared: its shading kept (a mid-grey part takes the colour as it
@@ -1171,11 +1178,16 @@ typedef struct SmsGameApi {
 	   towards it (0 off, 255 fully). Every part of its model, its
 	   reflections too; its particles are not. Kept until it is set again
 	   or the stage changes, whatever the model's colour animations do.
-	   0 when the object has no model. */
+	   An actor that has not made its model yet (a coin at
+	   SMS_EV_ITEM_SETUP) takes the colour once it has (API 1.8 beta 3; it
+	   crashed the game before). 0 when the object has no model and is no
+	   actor. */
 	int (*object_set_tint)(SmsObject obj, SmsColor color);
 	/* API 1.8: one of the game's particle effects (its number, as the
 	   game's PARTICLE_* in the decomp's Particles.hpp, docs/MODDING.md) at
-	   a point, as the game plays them. 1 played. */
+	   a point, as the game plays them. 1 played. The game's lasting effects
+	   (253 to 466, 486 to 504) are kept by their owner, so for them use
+	   object_particle: played here one may go on for good. */
 	int (*particle)(uint32_t id, const SmsVec3* at);
 	/* API 1.8: the stage's map (its walls, floors, roofs) between a and b:
 	   1 and where it first meets it into hit (may be NULL), 0 clear. */
@@ -1198,6 +1210,19 @@ typedef struct SmsGameApi {
 	   keeps Mario: where it is put (`out`) and the wall's way out (`normal`, may be NULL). 1 when a
 	   wall moved it, 0 not (out is at). */
 	int (*out_of_walls)(const SmsVec3* at, float radius, SmsVec3* out, SmsVec3* normal);
+	/* (API 1.8 beta 3; check size) One of the game's particle effects on an
+	   object, following it as it moves, as the game puts its own on its
+	   actors: at its model's joint `joint` (0 its first; a Shine's model has
+	   its effects on joint 2), or -1 at its position. The game's lasting
+	   effects (PARTICLE_* 253 to 466 and 486 to 504: a Shine's
+	   MS_SHINE_SENKO, _KIRA, _PROMI, _BOW, say) go on only while asked for:
+	   ask every tick (SMS_EV_TICK) to keep one, stop and it goes. Each such
+	   effect is on 32 objects at most at once (the game's own among them),
+	   and none on an object out of view (it starts again when seen). Any
+	   other effect plays once from the object, following it. 1 played or
+	   kept, 0 not: no such actor or joint, the actor gone or hidden, the
+	   effect not in this stage, or no room for it. */
+	int (*object_particle)(SmsObject obj, uint32_t id, int joint);
 } SmsGameApi;
 
 /* game->object_set_color's `which` (API 1.5) */
@@ -1407,7 +1432,12 @@ typedef struct SmsInputApi {
 	int (*bind_key)(SmsMod* mod, const char* action, const char* default_key);
 	/* Take the controllers and keyboard from the game while a menu is open:
 	   the game sees nothing pressed and keys reach only you. Returns 0 if
-	   another mod has them. Release with on = 0. */
+	   another mod has them. Release with on = 0. A menu read with key_down
+	   without it shares the keys with the game: they move Mario and work
+	   its menus (a key of a game control: the arrows, Enter's Start), and
+	   split-screen co-op takes them for the keyboard player's, player 1;
+	   keys pressed while captured are neither. Keys let go still reach the
+	   game (API 1.8 beta 3), so a key held as the menu opens is not left held. */
 	int (*capture)(SmsMod* mod, int on);
 	/* The id of the mod that has them, or NULL. */
 	const char* (*captured_by)(void);

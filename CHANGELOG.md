@@ -6,6 +6,14 @@ Pre-releases (`v1.5.0-beta.1`, `-beta.2`, ...) lead to a release and are listed 
 
 ## 1.8.0 (in beta)
 
+### 1.8.0-beta.3
+
+- `game->object_particle(obj, id, joint)` (check `size`): one of the game's particle effects on an object, following it, at its model's joint or at its position (-1), as the game puts its own on its actors. The game's lasting effects (253 to 466, 486 to 504) go on while asked for each tick; others play once. A coin given a Shine's model gets a Shine's sparkles this way (`PARTICLE_MS_SHINE_SENKO`, `_KIRA`, `_PROMI`, `_BOW` on joint 2). In Lua, `sms.object_particle(obj, id, joint)`.
+- `SMS_EV_ITEM_SETUP`'s `model`: a model of several joints shows whole on a coin, each joint placed as its file has it (only the first was: the game's Shine model drew nothing on a coin). `game_model` `SMS_GAME_MODEL_SHINE` gives a coin the game's Shine model without the mod carrying it; in Lua `game_model = "shine"`.
+- `game->object_set_tint` in `SMS_EV_ITEM_SETUP`, before the coin has made its model, crashed the game; the coin now takes the tint once its model is made. `object_set_color` there answers 0 (it crashed too).
+- A key let go reaches the game's controls even while a menu has the keyboard (`input->capture`, the Mods menu) or a mod consumed it (`SMS_EV_KEY`), so a key held as a menu opens is not left held down in the game. The manual says how a menu read with `key_down` alone shares its keys with the game and with split-screen co-op's keyboard player.
+- `SMS_MOD_API_PRERELEASE` is 3 (it stayed 1 in beta 2). The lua mod is version 1.8.0-beta.3.
+
 ### 1.8.0-beta.2
 
 General tools for a mod's own weapons, effects and models: what made the game's FLUDD weapons (1.7) is now open to any mod, and those weapons are a mod of their own (Allebale's FLUDD Weapons).
