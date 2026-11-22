@@ -4,40 +4,25 @@ A release's tag is the API version (`v1.1.0` is API 1.1). Within a major version
 
 Pre-releases (`v1.5.0-beta.1`, `-beta.2`, ...) lead to a release and are listed under it, newest first, until it comes out. What a beta added may still change before the release; see [Pre-releases](docs/MODDING.md#pre-releases).
 
-## 1.8.0 (in beta)
+## 1.8.0
 
-### 1.8.0-beta.4
-
-- `world->set_episode_name(mod, area, episode, name)` (check `size`): an episode's name as the mod has it, in place of the game's. The episode select and the pause menu show it in the game's font, `world->episode_name` gives it and save states are listed with it, so a mod that sends an episode to another stage, or adds stages, names it without a changed `scenarioname.bmg`. UTF-8 (Latin-1 letters are the font's own; others show as `?`), up to 127 bytes; `NULL` clears it; a mod's names go when it unloads. The Shine the episode stands for (`SMS_EV_EPISODE_SHINE`) is unchanged and still says whether it shows collected. In Lua, `sms.world.set_episode_name(area, ep, name)`.
-- An episode whose `SMS_EV_EPISODE_SHINE` answer is a Shine the game has no name for (70..119) or -1 shows no name in the episode select and the pause menu, instead of a wrong one read past the game's table.
-- `SMS_MOD_API_PRERELEASE` is 4. The lua mod is version 1.8.0-beta.4.
-
-### 1.8.0-beta.3
-
-- `game->object_particle(obj, id, joint)` (check `size`): one of the game's particle effects on an object, following it, at its model's joint or at its position (-1), as the game puts its own on its actors. The game's lasting effects (253 to 466, 486 to 504) go on while asked for each tick; others play once. A coin given a Shine's model gets a Shine's sparkles this way (`PARTICLE_MS_SHINE_SENKO`, `_KIRA`, `_PROMI`, `_BOW` on joint 2). In Lua, `sms.object_particle(obj, id, joint)`.
-- `SMS_EV_ITEM_SETUP`'s `model`: a model of several joints shows whole on a coin, each joint placed as its file has it (only the first was: the game's Shine model drew nothing on a coin). `game_model` `SMS_GAME_MODEL_SHINE` gives a coin the game's Shine model without the mod carrying it; in Lua `game_model = "shine"`.
-- `game->object_set_tint` in `SMS_EV_ITEM_SETUP`, before the coin has made its model, crashed the game; the coin now takes the tint once its model is made. `object_set_color` there answers 0 (it crashed too).
-- A key let go reaches the game's controls even while a menu has the keyboard (`input->capture`, the Mods menu) or a mod consumed it (`SMS_EV_KEY`), so a key held as a menu opens is not left held down in the game. The manual says how a menu read with `key_down` alone shares its keys with the game and with split-screen co-op's keyboard player.
-- `SMS_MOD_API_PRERELEASE` is 3 (it stayed 1 in beta 2). The lua mod is version 1.8.0-beta.3.
-
-### 1.8.0-beta.2
-
-General tools for a mod's own weapons, effects and models: what made the game's FLUDD weapons (1.7) is now open to any mod, and those weapons are a mod of their own (Allebale's FLUDD Weapons).
+General tools for a mod's own weapons, effects and models: what made the game's FLUDD weapons (1.7) is now open to any mod, and those weapons are a mod of their own (Allebale's FLUDD Weapons). And for mods that change the game's progress, such as a randomizer: coins' looks, which blue coin is which, effects on an object, the episode select's cursor and episodes' names.
 
 - `api->water` (`SmsWaterApi`): FLUDD's drops, a mod's own drops (tagged, drawn by the mod or the game), the drops flying, the water used, where a drop is seen in each co-op view.
 - `api->actor` (`SmsActorApi`): actors' motion, flags, size and kind (`SMS_KIND_*`), the actors round a point, defeats, pushes, hit messages, model sizes, the water a boss, character or hiding picture still takes (`SmsWaterMeter`), balls knocked, the game's flames, sparks and smoke on them.
 - `api->models` (`SmsModelApi`): a mod's own models and pictures, drawn in the world or on FLUDD (held in view, on his back), FLUDD left out in their place.
 - `game->particle`, `ray`, `splash`, `clean_goop`, `wall_at`, `out_of_walls`, `set_view_distance`; `audio->play_sound_at`, `play_clip`; `player->set_fall_start`, `burn`, `hurt`; `SmsPlayer`'s `gravity`, `intended_yaw`, `intended_speed`, `invincible`; `held_fludd->kick`, `aim`, `pose`, `dress`.
 - Events: `SMS_EV_WATER_EMIT`, `SMS_EV_WATER_LAND`, `SMS_EV_OBJECT_HIT_DONE`, `SMS_EV_DRAW_SCENE`, `SMS_EV_DRAW_UNDER_HUD`.
-- Gone: `held_fludd->set_weapon` and `set_weapon_stats` (their places in the table are NULL), `SmsSprayStats` and the `SMS_SPRAY_*` numbers; `SmsHeldFluddState.weapon` is `unused`. The game no longer has weapons of its own; only the FLUDD Weapons mod used them, and it is built on the tools above. A mod built against 1.7's names needs these out to build.
-
-### 1.8.0-beta.1
-
 - `SmsGameState.select_area`, `.select_episode` (check `size`): while a world's episode select is up, its world and the episode its cursor is on (the one chosen, once A is pressed); -1 at any other time. The select is game mode `SMS_MODE_TITLE`, and `SMS_EV_DRAW` comes over it, so a mod can show more of the episode under the cursor (where a mod that shuffles stages takes the player, say). In Lua, `sms.state()`'s `select_area` and `select_episode`.
-- `SMS_EV_ITEM_SETUP` (`SmsEvItemSetup`: `object`, `kind`, `actor_type`, `id`, `flag`, `position`, `model`, `game_model`): a coin, red coin or blue coin is made as its stage loads, hidden ones and those enemies and boxes drop too. A blue coin comes with its number in its world (`id`) and its save-file flag (`flag`), so a mod knows which object each blue coin is. `model` names a model file of the mod's for it, as `SMS_EV_SHINE_SETUP`'s does (one that shows without an animation: the game's Shine model does not show on a coin); `game_model` another coin's (`SMS_GAME_MODEL_COIN`, `_RED_COIN`, `_BLUE_COIN`), without the mod carrying the game's files. In Lua, `item_setup` (`game_model` `"coin"`, `"red_coin"`, `"blue_coin"`).
-- `game->object_set_tint(obj, colour)`: one object drawn in a colour, however many objects share its model (`object_set_color` changes the model, and so all of them): its shading kept, the alpha how far towards the colour, 0 off; until set again or the stage changes. In Lua, `sms.set_object_tint(obj, colour)`.
+- `SMS_EV_ITEM_SETUP` (`SmsEvItemSetup`: `object`, `kind`, `actor_type`, `id`, `flag`, `position`, `model`, `game_model`): a coin, red coin or blue coin is made as its stage loads, hidden ones and those enemies and boxes drop too. A blue coin comes with its number in its world (`id`) and its save-file flag (`flag`), so a mod knows which object each blue coin is. `model` names a model file of the mod's for it, as `SMS_EV_SHINE_SETUP`'s does; a model of several joints shows whole, each joint placed as its file has it. `game_model` gives it another coin's model (`SMS_GAME_MODEL_COIN`, `_RED_COIN`, `_BLUE_COIN`) or the game's Shine (`SMS_GAME_MODEL_SHINE`), without the mod carrying the game's files. In Lua, `item_setup` (`game_model` `"coin"`, `"red_coin"`, `"blue_coin"`, `"shine"`).
+- `game->object_set_tint(obj, colour)`: one object drawn in a colour, however many objects share its model (`object_set_color` changes the model, and so all of them): its shading kept, the alpha how far towards the colour, 0 off; until set again or the stage changes. Set in `SMS_EV_ITEM_SETUP`, before the coin has made its model, the coin takes it once it has. In Lua, `sms.set_object_tint(obj, colour)`.
+- `game->object_particle(obj, id, joint)` (check `size`): one of the game's particle effects on an object, following it, at its model's joint or at its position (-1), as the game puts its own on its actors. The game's lasting effects (253 to 466, 486 to 504) go on while asked for each tick; others play once. A coin given a Shine's model gets a Shine's sparkles this way (`PARTICLE_MS_SHINE_SENKO`, `_KIRA`, `_PROMI`, `_BOW` on joint 2). In Lua, `sms.object_particle(obj, id, joint)`.
+- `world->set_episode_name(mod, area, episode, name)` (check `size`): an episode's name as the mod has it, in place of the game's. The episode select and the pause menu show it in the game's font, `world->episode_name` gives it and save states are listed with it, so a mod that sends an episode to another stage, or adds stages, names it without a changed `scenarioname.bmg`. UTF-8 (Latin-1 letters are the font's own; others show as `?`), up to 127 bytes; `NULL` clears it; a mod's names go when it unloads. The Shine the episode stands for (`SMS_EV_EPISODE_SHINE`) is unchanged and still says whether it shows collected. In Lua, `sms.world.set_episode_name(area, ep, name)`.
+- An episode whose `SMS_EV_EPISODE_SHINE` answer is a Shine the game has no name for (70..119) or -1 shows no name in the episode select and the pause menu, instead of a wrong one read past the game's table.
+- A key let go reaches the game's controls even while a menu has the keyboard (`input->capture`, the Mods menu) or a mod consumed it (`SMS_EV_KEY`), so a key held as a menu opens is not left held down in the game. The manual says how a menu read with `key_down` alone shares its keys with the game and with split-screen co-op's keyboard player.
 - The game modes' notes: `SMS_MODE_TITLE` is a world's episode select; the title screen and the file select are the title stage (area 15) in `SMS_MODE_STAGE`.
-- The lua mod is version 1.8.0-beta.1.
+- Gone: `held_fludd->set_weapon` and `set_weapon_stats` (their places in the table are NULL), `SmsSprayStats` and the `SMS_SPRAY_*` numbers; `SmsHeldFluddState.weapon` is `unused`. The game no longer has weapons of its own; only the FLUDD Weapons mod used them, and it is built on the tools above. A mod built against 1.7's names needs these out to build.
+- The lua mod is version 1.8.0.
 
 ## 1.7.0
 
