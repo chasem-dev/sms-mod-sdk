@@ -6,6 +6,12 @@ Pre-releases (`v1.5.0-beta.1`, `-beta.2`, ...) lead to a release and are listed 
 
 ## 1.8.0 (in beta)
 
+### 1.8.0-beta.4
+
+- `world->set_episode_name(mod, area, episode, name)` (check `size`): an episode's name as the mod has it, in place of the game's. The episode select and the pause menu show it in the game's font, `world->episode_name` gives it and save states are listed with it, so a mod that sends an episode to another stage, or adds stages, names it without a changed `scenarioname.bmg`. UTF-8 (Latin-1 letters are the font's own; others show as `?`), up to 127 bytes; `NULL` clears it; a mod's names go when it unloads. The Shine the episode stands for (`SMS_EV_EPISODE_SHINE`) is unchanged and still says whether it shows collected. In Lua, `sms.world.set_episode_name(area, ep, name)`.
+- An episode whose `SMS_EV_EPISODE_SHINE` answer is a Shine the game has no name for (70..119) or -1 shows no name in the episode select and the pause menu, instead of a wrong one read past the game's table.
+- `SMS_MOD_API_PRERELEASE` is 4. The lua mod is version 1.8.0-beta.4.
+
 ### 1.8.0-beta.3
 
 - `game->object_particle(obj, id, joint)` (check `size`): one of the game's particle effects on an object, following it, at its model's joint or at its position (-1), as the game puts its own on its actors. The game's lasting effects (253 to 466, 486 to 504) go on while asked for each tick; others play once. A coin given a Shine's model gets a Shine's sparkles this way (`PARTICLE_MS_SHINE_SENKO`, `_KIRA`, `_PROMI`, `_BOW` on joint 2). In Lua, `sms.object_particle(obj, id, joint)`.

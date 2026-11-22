@@ -2457,10 +2457,22 @@ static int w_cutscene_playing(lua_State* L)
 	return 1;
 }
 
+/* set_episode_name(area, episode, name) -> whether set; nil (or "") clears
+   the mod's own (API 1.8 beta 4) */
+static int w_set_episode_name(lua_State* L)
+{
+	const int area = (int)luaL_checkinteger(L, 1), episode = (int)luaL_checkinteger(L, 2);
+	const char* name = luaL_optstring(L, 3, NULL);
+	lua_pushboolean(L, hasWorld() && SMS_API_HAS(api->world, set_episode_name)
+	                       && api->world->set_episode_name(MOD(L), area, episode, name));
+	return 1;
+}
+
 static const luaL_Reg kWorld[] = {
 	{"kind", w_kind}, {"of", w_of}, {"episodes", w_episodes}, {"episode_shine", w_episode_shine},
 	{"episode_name", w_episode_name}, {"next_episode", w_next_episode}, {"shine_episode", w_shine_episode},
 	{"has_cutscene", w_has_cutscene}, {"play_cutscene", w_play_cutscene}, {"cutscene_playing", w_cutscene_playing},
+	{"set_episode_name", w_set_episode_name},
 	{NULL, NULL},
 };
 
