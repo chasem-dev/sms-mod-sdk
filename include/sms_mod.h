@@ -42,7 +42,7 @@
 #define SMS_MOD_API_MAJOR 1
 #define SMS_MOD_API_MINOR 8
 /* 0 in a release; N in the pre-release vMAJOR.MINOR.0-beta.N (API 1.5) */
-#define SMS_MOD_API_PRERELEASE 3
+#define SMS_MOD_API_PRERELEASE 4
 #define SMS_MOD_API_VERSION ((uint32_t)SMS_MOD_API_MAJOR << 16 | SMS_MOD_API_MINOR)
 
 #if defined(_WIN32)
@@ -901,7 +901,11 @@ typedef struct SmsEvYoshiEgg {
 typedef struct SmsEvEpisodeShine {
 	int area;    /* the world's area (game->state's numbers) */
 	int episode; /* 0..7 */
-	int shine;   /* the Shine (0..119); changeable */
+	int shine;   /* the Shine (0..119, or -1 none: never collected); changeable.
+	                The game has names for Shines 0..69 only: an episode
+	                standing for another (or none) shows no name unless a mod
+	                names it (world->set_episode_name, API 1.8 beta 4; before,
+	                a wrong one) */
 } SmsEvEpisodeShine;
 
 typedef struct SmsEvFlag {
@@ -1879,7 +1883,7 @@ typedef struct SmsWorldApi {
 	   returns its length, 0 when there is none). Episodes count from 0. */
 	int (*episode_count)(int area);
 	int (*episode_shine)(int area, int episode);
-	int (*episode_name)(int area, int episode, char* out, int size);
+	int (*episode_name)(int area, int episode, char* out, int size); /* a mod's name first (set_episode_name) */
 	/* The episode the world's episode select offers first: the one after
 	   the newest whose Shine the file has (the first with none; the last
 	   when that is had). -1: no episodes. */
@@ -1897,6 +1901,25 @@ typedef struct SmsWorldApi {
 	int (*play_cutscene)(const char* name, const SmsVec3* focus, int frames);
 	/* A cutscene (the game's or a mod's) or a talk is on now. */
 	int (*cutscene_playing)(void);
+	/* (API 1.8 beta 4; check size) An episode's name as the mod has it, in
+	   place of the game's: what the episode select and the pause menu show
+	   for it (in the game's font), episode_name gives, and a save state
+	   made in it is listed with.
+	   Any of the world's areas names the world; episodes count from 0. The
+	   Shine the episode stands for (SMS_EV_EPISODE_SHINE) is not changed,
+	   and it still says whether the episode shows collected: a mod that
+	   sends an episode to another stage names it so, and answers
+	   SMS_EV_EPISODE_SHINE with that stage's Shine (or -1, none). `name` is
+	   UTF-8, one line (a line break is a space, other control characters
+	   are left out), up to 127 bytes as the game writes it (the select
+	   wraps one longer than its line, about 40 letters); a letter the game's font
+	   lacks (beyond Latin-1) shows as '?', curly quotes, dashes and the
+	   ellipsis as their plain ones. NULL or "" clears the mod's own name.
+	   One name an episode: the one set last; a mod's names go when it
+	   unloads, and are not saved (set them as the mod loads). 1 set or
+	   cleared, 0 not: no such episode, another mod's name to clear, or a
+	   Super Mario Eclipse build. */
+	int (*set_episode_name)(SmsMod* mod, int area, int episode, const char* name);
 } SmsWorldApi;
 
 /* Files (API 1.5, SMS_API_HAS(api, files)): the mod's own, beside
