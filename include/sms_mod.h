@@ -28,7 +28,7 @@
  * checks a function is there with SMS_API_HAS before calling it. A new major
  * version is an incompatible change; the game refuses mods of another major.
  *
- * Pre-releases: v1.8.0-beta.1, -beta.2, ... lead to v1.8.0. A beta has the
+ * Pre-releases: v1.9.0-beta.1, -beta.2, ... lead to v1.9.0. A beta has the
  * next minor version and SMS_MOD_API_PRERELEASE its number; what a beta added
  * may still change before the release, so a mod built against one is rebuilt
  * against the release (the game warns of a mod built against another beta).
@@ -42,7 +42,7 @@
 #define SMS_MOD_API_MAJOR 1
 #define SMS_MOD_API_MINOR 8
 /* 0 in a release; N in the pre-release vMAJOR.MINOR.0-beta.N (API 1.5) */
-#define SMS_MOD_API_PRERELEASE 4
+#define SMS_MOD_API_PRERELEASE 0
 #define SMS_MOD_API_VERSION ((uint32_t)SMS_MOD_API_MAJOR << 16 | SMS_MOD_API_MINOR)
 
 #if defined(_WIN32)
@@ -141,7 +141,7 @@ typedef enum SmsEventType {
 	SMS_EV_PAD_READ = 12,
 	/* A key went down or up in the game's window. Consumable: consume it and
 	   neither later mods nor the game's controls see it (a key let go still
-	   reaches the game's controls, API 1.8 beta 3, so none is left held there).
+	   reaches the game's controls, API 1.8, so none is left held there).
 	   SmsEvKey. */
 	SMS_EV_KEY = 13,
 	/* A camera cutscene was asked for. SmsEvCutscene. */
@@ -849,14 +849,14 @@ typedef struct SmsEvShineSetup {
 	const char* model;
 } SmsEvShineSetup;
 
-/* SmsEvItemSetup.game_model (API 1.8): another coin's model, or (beta 3) a
+/* SmsEvItemSetup.game_model (API 1.8): another coin's model, or a
    Shine's, from the stage's files. A stage that lacks the file leaves the
    coin's own. */
 #define SMS_GAME_MODEL_NONE      0 /* the coin's own (or `model`) */
 #define SMS_GAME_MODEL_COIN      1
 #define SMS_GAME_MODEL_RED_COIN  2
 #define SMS_GAME_MODEL_BLUE_COIN 3
-#define SMS_GAME_MODEL_SHINE     4 /* (API 1.8 beta 3) the Shine's; its effects: game->object_particle */
+#define SMS_GAME_MODEL_SHINE     4 /* the Shine's; its effects: game->object_particle */
 
 /* SMS_EV_ITEM_SETUP (API 1.8) */
 typedef struct SmsEvItemSetup {
@@ -876,8 +876,8 @@ typedef struct SmsEvItemSetup {
 	   a full one; a model that cannot be loaded leaves the game's. Coins
 	   play no animation of their own (the game turns them), so a model
 	   that shows without one will do (a 1-up mushroom's, a Shine's). Its
-	   joints are placed as the model's file has them (from API 1.8 beta 3;
-	   before, only the first, so only a one-joint model showed whole), and
+	   joints are placed as the model's file has them (API 1.8; before,
+	   only the first, so only a one-joint model showed whole), and
 	   game->object_particle puts effects on them. Several items may name
 	   the same file: it is loaded once a stage. */
 	const char* model;
@@ -904,7 +904,7 @@ typedef struct SmsEvEpisodeShine {
 	int shine;   /* the Shine (0..119, or -1 none: never collected); changeable.
 	                The game has names for Shines 0..69 only: an episode
 	                standing for another (or none) shows no name unless a mod
-	                names it (world->set_episode_name, API 1.8 beta 4; before,
+	                names it (world->set_episode_name, API 1.8; before,
 	                a wrong one) */
 } SmsEvEpisodeShine;
 
@@ -1174,7 +1174,7 @@ typedef struct SmsGameApi {
 	   it plays (set it every tick to keep it). The colours are the model's:
 	   every object of the same model shares them (all the Shines given the
 	   same model file, say). 0 when the object has no model (yet: a coin
-	   at SMS_EV_ITEM_SETUP; it crashed the game before API 1.8 beta 3). */
+	   at SMS_EV_ITEM_SETUP). */
 	int (*object_set_color)(SmsObject obj, int which, SmsColor color);
 	/* API 1.8: one object drawn in a colour (0xRRGGBBAA), however its model
 	   is shared: its shading kept (a mid-grey part takes the colour as it
@@ -1183,9 +1183,8 @@ typedef struct SmsGameApi {
 	   reflections too; its particles are not. Kept until it is set again
 	   or the stage changes, whatever the model's colour animations do.
 	   An actor that has not made its model yet (a coin at
-	   SMS_EV_ITEM_SETUP) takes the colour once it has (API 1.8 beta 3; it
-	   crashed the game before). 0 when the object has no model and is no
-	   actor. */
+	   SMS_EV_ITEM_SETUP) takes the colour once it has. 0 when the object
+	   has no model and is no actor. */
 	int (*object_set_tint)(SmsObject obj, SmsColor color);
 	/* API 1.8: one of the game's particle effects (its number, as the
 	   game's PARTICLE_* in the decomp's Particles.hpp, docs/MODDING.md) at
@@ -1214,7 +1213,7 @@ typedef struct SmsGameApi {
 	   keeps Mario: where it is put (`out`) and the wall's way out (`normal`, may be NULL). 1 when a
 	   wall moved it, 0 not (out is at). */
 	int (*out_of_walls)(const SmsVec3* at, float radius, SmsVec3* out, SmsVec3* normal);
-	/* (API 1.8 beta 3; check size) One of the game's particle effects on an
+	/* (API 1.8; check size) One of the game's particle effects on an
 	   object, following it as it moves, as the game puts its own on its
 	   actors: at its model's joint `joint` (0 its first; a Shine's model has
 	   its effects on joint 2), or -1 at its position. The game's lasting
@@ -1441,7 +1440,7 @@ typedef struct SmsInputApi {
 	   its menus (a key of a game control: the arrows, Enter's Start), and
 	   split-screen co-op takes them for the keyboard player's, player 1;
 	   keys pressed while captured are neither. Keys let go still reach the
-	   game (API 1.8 beta 3), so a key held as the menu opens is not left held. */
+	   game (API 1.8), so a key held as the menu opens is not left held. */
 	int (*capture)(SmsMod* mod, int on);
 	/* The id of the mod that has them, or NULL. */
 	const char* (*captured_by)(void);
@@ -1901,7 +1900,7 @@ typedef struct SmsWorldApi {
 	int (*play_cutscene)(const char* name, const SmsVec3* focus, int frames);
 	/* A cutscene (the game's or a mod's) or a talk is on now. */
 	int (*cutscene_playing)(void);
-	/* (API 1.8 beta 4; check size) An episode's name as the mod has it, in
+	/* (API 1.8; check size) An episode's name as the mod has it, in
 	   place of the game's: what the episode select and the pause menu show
 	   for it (in the game's font), episode_name gives, and a save state
 	   made in it is listed with.

@@ -1195,7 +1195,7 @@ static int l_set_object_tint(lua_State* L)
 }
 
 /* sms.object_particle(obj, id, joint) -> whether played or kept; joint
-   -1 (or nil) the object's position (API 1.8 beta 3). */
+   -1 (or nil) the object's position (API 1.8). */
 static int l_object_particle(lua_State* L)
 {
 	SmsObject o     = (SmsObject)lua_touserdata(L, 1);
@@ -2458,7 +2458,7 @@ static int w_cutscene_playing(lua_State* L)
 }
 
 /* set_episode_name(area, episode, name) -> whether set; nil (or "") clears
-   the mod's own (API 1.8 beta 4) */
+   the mod's own (API 1.8) */
 static int w_set_episode_name(lua_State* L)
 {
 	const int area = (int)luaL_checkinteger(L, 1), episode = (int)luaL_checkinteger(L, 2);
